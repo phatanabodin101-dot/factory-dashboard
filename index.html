@@ -1,162 +1,253 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Factory Monitoring Dashboard</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #1a1a1a;
-      color: white;
-      margin: 0;
-      padding: 20px;
-    }
-    
-    .summary-bar {
-      display: flex;
-      justify-content: space-around;
-      background-color: #2a2a2a;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 25px;
-      font-size: 20px;
-      font-weight: bold;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .status-normal { color: #4CAF50; }
-    .status-alarm { color: #f44336; animation: blink 1s infinite; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPUTTERING</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e13;
+    --panel: #12161d;
+    --panel-2: #171c24;
+    --border: #262c36;
+    --border-soft: #1d232c;
 
-    .dept-header {
-      background: linear-gradient(90deg, #333333, #1a1a1a);
-      padding: 10px 15px;
-      border-left: 5px solid #00bcd4;
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 25px;
-      margin-bottom: 15px;
-      border-radius: 4px;
-    }
+    --text: #e8edf3;
+    --text-dim: #8b96a5;
+    --text-faint: #565f6b;
 
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: 10px;
-      margin-bottom: 25px;
-    }
+    --accent-med: #4c8dd9;
+    --accent-thang: #c9932f;
 
-    .machine-card {
-      background-color: #4CAF50;
-      height: 60px;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      transition: background-color 0.3s ease;
-    }
+    --ok: #2fa84f;
+    --ok-tint: rgba(47,168,79,0.14);
+    --ok-text: #6fe08c;
 
-    .machine-card.alarm {
-      background-color: #f44336 !important;
-      animation: pulse 1s infinite alternate;
-    }
+    --alarm: #d6423c;
+    --alarm-tint: rgba(214,66,60,0.16);
+    --alarm-text: #ff8f88;
 
-    @keyframes pulse {
-      from { transform: scale(1); }
-      to { transform: scale(1.05); }
-    }
+    --offline: #565f6b;
+    --offline-tint: rgba(138,146,160,0.12);
+    --offline-text: #b7bec9;
 
-    /* ตารางประวัติย้อนหลัง */
-    .history-card {
-      background-color: #2a2a2a;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-      margin-top: 30px;
-    }
-    .table-responsive {
-      max-height: 500px;
-      overflow-y: auto;
-      margin-top: 15px;
-    }
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 15px;
-    }
-    .history-table th, .history-table td {
-      padding: 12px;
-      text-align: center;
-      border-bottom: 1px solid #444;
-    }
-    .history-table th {
-      background-color: #333;
-      color: #00bcd4;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    .history-table tr:hover {
-      background-color: #383838;
-    }
-    .badge-alarm {
-      background-color: #f44336;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .badge-ok {
-      background-color: #4CAF50;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    /* สไตล์เวลา Downtime */
-    .downtime-text {
-      display: block;
-      margin-top: 5px;
-      font-size: 13px;
-      color: #ffeb3b; /* สีเหลืองเด่นๆ */
-    }
-  </style>
+    --info: #4c8dd9;
+    --info-tint: rgba(76,141,217,0.14);
+    --info-text: #8fc1ff;
+
+    --warn: #c9932f;
+    --warn-tint: rgba(201,147,47,0.16);
+    --warn-text: #f0c15e;
+
+    --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    padding: 0 0 40px;
+  }
+
+  #connBanner {
+    padding: 8px 28px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  #connBanner.error { color: var(--alarm-text); background: var(--alarm-tint); }
+  #connBanner.ok { color: var(--ok-text); }
+
+  .plant-header {
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .plant-header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
+  .plant-header .subtitle { margin-top: 4px; font-size: 13px; color: var(--text-dim); }
+  .header-right { display: flex; align-items: center; gap: 22px; }
+  .live-pill { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 12px; color: var(--ok-text); letter-spacing: 0.03em; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px 1px var(--ok); animation: livepulse 1.6s ease-in-out infinite; }
+  @keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .clock { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--text); letter-spacing: 0.02em; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 24px 28px;
+    border: 1px solid var(--border);
+  }
+  .kpi { background: var(--panel); padding: 18px 20px 16px; border-top: 3px solid var(--text-faint); }
+  .kpi.total    { border-top-color: var(--text-dim); }
+  .kpi.normal   { border-top-color: var(--ok); }
+  .kpi.stop     { border-top-color: var(--warn); }
+  .kpi.alarm    { border-top-color: var(--alarm); }
+  .kpi.offline  { border-top-color: var(--offline); }
+  .kpi .value { font-family: var(--font-mono); font-size: 34px; font-weight: 600; line-height: 1; }
+  .kpi.normal .value  { color: var(--ok-text); }
+  .kpi.stop .value    { color: var(--warn-text); }
+  .kpi.alarm .value   { color: var(--alarm-text); }
+  .kpi.offline .value { color: var(--offline-text); }
+  .kpi .label { margin-top: 8px; font-size: 13px; color: var(--text-dim); }
+
+  .dept-section { margin: 0 28px 28px; }
+  .dept-header { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+  .dept-header.med   { border-bottom-color: var(--accent-med); }
+  .dept-header.thang { border-bottom-color: var(--accent-thang); }
+  .dept-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .dept-header .range { color: var(--text-dim); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .dept-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 3px; }
+
+  .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+
+  .machine-tile {
+    position: relative;
+    height: 58px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: var(--ok);
+    border: 1px solid rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+  .machine-tile .tile-label { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.78); z-index: 1; }
+  .machine-tile .tile-status { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em; color: rgba(0,0,0,0.6); z-index: 1; }
+
+  .machine-tile.alarm { background: var(--alarm); animation: alarmFlash 0.9s steps(2, jump-none) infinite; }
+  .machine-tile.alarm .tile-label, .machine-tile.alarm .tile-status { color: rgba(255,255,255,0.92); }
+  @keyframes alarmFlash { 0% { filter: brightness(1); } 50% { filter: brightness(0.6); } 100% { filter: brightness(1); } }
+
+  .machine-tile.stop { background: var(--warn); }
+  .machine-tile.stop .tile-label, .machine-tile.stop .tile-status { color: rgba(0,0,0,0.75); }
+
+  .machine-tile.offline {
+    background: repeating-linear-gradient(45deg, #2a2e35, #2a2e35 8px, #1d2026 8px, #1d2026 16px);
+    border: 1px solid var(--border);
+  }
+  .machine-tile.offline .tile-label { color: var(--text-dim); }
+  .machine-tile.offline .tile-status { color: var(--offline-text); }
+
+  .history-panel { margin: 0 28px; background: var(--panel); border: 1px solid var(--border); }
+  .history-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; }
+  .history-panel-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .history-panel-header .count-note { font-size: 12.5px; color: var(--text-dim); }
+  .table-scroll { max-height: 520px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; background: var(--panel-2); text-align: left; font-size: 12px; font-weight: 600; color: var(--text-dim); padding: 10px 20px; border-bottom: 2px solid var(--accent-med); letter-spacing: 0.02em; }
+  tbody td { padding: 12px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border-soft); }
+  tbody tr:hover { background: var(--panel-2); }
+  td.ts { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); white-space: nowrap; }
+
+  .tag { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 3px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+  .tag .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .tag.tag-alarm   { background: var(--alarm-tint);   color: var(--alarm-text); }
+  .tag.tag-alarm .dot   { background: var(--alarm); }
+  .tag.tag-ok      { background: var(--ok-tint);      color: var(--ok-text); }
+  .tag.tag-ok .dot      { background: var(--ok); }
+  .tag.tag-offline { background: var(--offline-tint); color: var(--offline-text); }
+  .tag.tag-offline .dot { background: var(--offline); }
+  .tag.tag-info    { background: var(--info-tint);    color: var(--info-text); }
+  .tag.tag-info .dot    { background: var(--info); }
+  .tag.tag-warn    { background: var(--warn-tint);    color: var(--warn-text); }
+  .tag.tag-warn .dot    { background: var(--warn); }
+
+  .downtime-note { display: block; margin-top: 5px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--panel); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+</style>
 </head>
 <body>
 
-  <div class="summary-bar">
-    <div>รวมทั้งหมด: <span id="totalCount">80</span> เครื่อง</div>
-    <div>ปกติ: <span id="normalCount" class="status-normal">80</span></div>
-    <div>ALARM: <span id="alarmCount" class="status-alarm">0</span></div>
+  <div id="connBanner">กำลังเชื่อมต่อ Firebase...</div>
+
+  <div class="plant-header">
+    <div>
+      <h1>สถานะเครื่องจักรในแผนก SPUTTERING</h1>
+      <div class="subtitle">แผนกหักเม็ด และ แผนกหักแท่ง</div>
+    </div>
+    <div class="header-right">
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
   </div>
 
-  <div class="dept-header" style="border-left-color: #00bcd4;">🏭 แผนกหักเม็ด (42 เครื่อง: M1 - M42)</div>
-  <div class="grid-container" id="gridHakMed"></div>
-
-  <div class="dept-header" style="border-left-color: #ff9800;">🏭 แผนกหักแท่ง (38 เครื่อง: M1 - M38)</div>
-  <div class="grid-container" id="gridHakThang"></div>
-
-  <div class="history-card">
-    <div style="font-size: 20px; font-weight: bold; color: #00bcd4;">
-      📜 ประวัติการแจ้งเตือนและระยะเวลาหยุดเครื่อง (80 รายการล่าสุด)
+  <div class="kpi-row">
+    <div class="kpi total">
+      <div class="value" id="totalCount">80</div>
+      <div class="label">เครื่องทั้งหมด</div>
     </div>
-    
-    <div class="table-responsive">
-      <table class="history-table">
+    <div class="kpi normal">
+      <div class="value" id="normalCount">80</div>
+      <div class="label">ทำงานปกติ</div>
+    </div>
+    <div class="kpi stop">
+      <div class="value" id="stopCount">0</div>
+      <div class="label">หยุดชั่วคราว</div>
+    </div>
+    <div class="kpi alarm">
+      <div class="value" id="alarmCount">0</div>
+      <div class="label">ALARM</div>
+    </div>
+    <div class="kpi offline">
+      <div class="value" id="offlineCount">0</div>
+      <div class="label">ออฟไลน์</div>
+    </div>
+  </div>
+
+  <div class="dept-section">
+    <div class="dept-header med">
+      <h2>แผนกหักเม็ด<span class="range">S001 - S042</span></h2>
+      <span class="dept-count">42 เครื่อง</span>
+    </div>
+    <div class="grid-container" id="gridHakMed"></div>
+  </div>
+
+  <div class="dept-section">
+    <div class="dept-header thang">
+      <h2>แผนกหักแท่ง<span class="range">P001 - P038</span></h2>
+      <span class="dept-count">38 เครื่อง</span>
+    </div>
+    <div class="grid-container" id="gridHakThang"></div>
+  </div>
+
+  <div class="history-panel">
+    <div class="history-panel-header">
+      <h2>ประวัติการแจ้งเตือนและระยะเวลาหยุดเครื่อง</h2>
+      <span class="count-note">80 รายการล่าสุด</span>
+    </div>
+    <div class="table-scroll">
+      <table>
         <thead>
           <tr>
             <th>วัน - เวลา</th>
             <th>แผนก</th>
             <th>เครื่องจักร</th>
-            <th>สถานะ / เวลาหยุด</th>
+            <th>สถานะ</th>
           </tr>
         </thead>
         <tbody id="historyTableBody">
-          <tr>
-            <td colspan="4" style="color: #aaa;">กำลังโหลดข้อมูลประวัติ...</td>
-          </tr>
+          <tr><td colspan="4" style="color:var(--text-dim); padding:20px;">กำลังโหลดข้อมูลประวัติ...</td></tr>
         </tbody>
       </table>
     </div>
@@ -164,64 +255,142 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getDatabase, ref, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // 1. ใส่ Config จาก Firebase ของคุณ
     const firebaseConfig = {
       apiKey: "AIzaSyC7qrwVsl_F4zgCVnfMwvBxxdA_AfDCG04",
       databaseURL: "https://factory-monitoring-65f56-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
 
     const app = initializeApp(firebaseConfig);
+    const authInst = getAuth(app);
     const db = getDatabase(app);
+    const connBanner = document.getElementById('connBanner');
+
+    // *** แก้ที่ 1: ต้อง sign-in แบบ Anonymous ก่อนถึงจะอ่านข้อมูลได้ ***
+    // (ต้องเปิด Authentication > Sign-in method > Anonymous ใน Firebase Console ไว้แล้ว เหมือนฝั่ง ESP32)
+    onAuthStateChanged(authInst, (user) => {
+      if (user) {
+        connBanner.textContent = '● เชื่อมต่อ Firebase สำเร็จ';
+        connBanner.className = 'ok';
+        startListening();
+      }
+    });
+
+    signInAnonymously(authInst).catch((error) => {
+      connBanner.textContent = '✕ เชื่อมต่อ Firebase ไม่สำเร็จ: ' + error.message + ' (เช็คว่าเปิด Anonymous sign-in ใน Firebase Console แล้วหรือยัง)';
+      connBanner.className = 'error';
+    });
+
+    // ค่าที่เก่ากว่านี้ (วินาที) ถือว่าเครื่องขาดการติดต่อกับ Firebase จริงๆ
+    // *** แก้ที่ 3: ใช้ heartbeatMs (เวลาจาก Firebase server) แทน lastUpdate (นาฬิกา ESP32 ที่ไม่น่าเชื่อถือ) ***
+    const OFFLINE_THRESHOLD_SEC = 40; // มากกว่า HEARTBEAT_INTERVAL_MS ฝั่ง ESP32 (15s) พอสมควร กันตีความ delay ปกติผิด
 
     const gridMed = document.getElementById('gridHakMed');
     const gridThang = document.getElementById('gridHakThang');
 
-    for (let i = 1; i <= 42; i++) gridMed.appendChild(createCard(`med_m${i}`, `M${i}`));
-    for (let i = 1; i <= 38; i++) gridThang.appendChild(createCard(`thang_m${i}`, `M${i}`));
+    const medKeys = [];
+    const thangKeys = [];
+    for (let i = 1; i <= 42; i++) { medKeys.push(`med_m${i}`); gridMed.appendChild(createTile(`med_m${i}`, `S${String(i).padStart(3, '0')}`)); }
+    for (let i = 1; i <= 38; i++) { thangKeys.push(`thang_m${i}`); gridThang.appendChild(createTile(`thang_m${i}`, `P${String(i).padStart(3, '0')}`)); }
+    const allKeys = [...medKeys, ...thangKeys];
 
-    function createCard(dataKey, displayLabel) {
-      const card = document.createElement('div');
-      card.id = `card-${dataKey}`;
-      card.className = 'machine-card';
-      card.innerHTML = `<div style="font-size: 13px; opacity: 0.85;">${displayLabel}</div><div id="status-${dataKey}" style="font-size: 15px;">OK</div>`;
-      return card;
+    function createTile(dataKey, displayLabel) {
+      const tile = document.createElement('div');
+      tile.id = `card-${dataKey}`;
+      tile.className = 'machine-tile';
+      tile.innerHTML = `<span class="tile-label">${displayLabel}</span><span class="tile-status" id="status-${dataKey}">OK</span>`;
+      return tile;
     }
 
-    // อัปเดตสถานะเครื่องแบบเรียลไทม์
-    onValue(ref(db, 'status'), (snapshot) => {
-      const data = snapshot.val() || {};
-      let alarmCount = 0; let normalCount = 0;
+    let statusMap = {};   // /status/<key> -> 0/1/2 (offline คำนวณจาก heartbeat ต่างหาก ไม่ได้มาจาก field นี้)
+    let machinesMap = {}; // /machines/<key> -> { heartbeatMs, ... }
 
-      const updateStatus = (dataKey) => {
-        const isAlarm = data[dataKey] === 1;
-        const card = document.getElementById(`card-${dataKey}`);
+    function refreshAllCards() {
+      const nowMs = Date.now();
+      let normalCount = 0, stopCount = 0, alarmCount = 0, offlineCount = 0;
+
+      allKeys.forEach((dataKey) => {
+        const tile = document.getElementById(`card-${dataKey}`);
         const text = document.getElementById(`status-${dataKey}`);
-        if (card && text) {
-          if (isAlarm) {
-            card.className = 'machine-card alarm'; text.innerText = 'ALARM'; alarmCount++;
-          } else {
-            card.className = 'machine-card'; text.innerText = 'OK'; normalCount++;
-          }
+        if (!tile || !text) return;
+
+        const heartbeatMs = machinesMap[dataKey] ? machinesMap[dataKey].heartbeatMs : undefined;
+        const isStale = !heartbeatMs || ((nowMs - heartbeatMs) / 1000 > OFFLINE_THRESHOLD_SEC);
+        const code = statusMap[dataKey]; // 0=เขียว 1=แดง 2=เหลือง 3=เทา(ESP32 บอกเองว่า comm lost)
+
+        // ออฟไลน์จริง: heartbeat เก่าเกินไป (เว็บตรวจเอง) หรือ ESP32 ส่งรหัส 3 มาเอง (comm lost กับ HMI)
+        if (isStale || code === 3) {
+          tile.className = 'machine-tile offline';
+          text.innerText = 'ออฟไลน์';
+          offlineCount++;
+        } else if (code === 1) {
+          tile.className = 'machine-tile alarm';
+          text.innerText = 'ALARM';
+          alarmCount++;
+        } else if (code === 2) {
+          // *** แก้ที่ 2: เพิ่มการรองรับสถานะเหลือง (หยุดชั่วคราว) ที่หายไปจากเวอร์ชันก่อน ***
+          tile.className = 'machine-tile stop';
+          text.innerText = 'หยุด';
+          stopCount++;
+        } else {
+          tile.className = 'machine-tile';
+          text.innerText = 'OK';
+          normalCount++;
         }
-      };
+      });
 
-      for (let i = 1; i <= 42; i++) updateStatus(`med_m${i}`);
-      for (let i = 1; i <= 38; i++) updateStatus(`thang_m${i}`);
       document.getElementById('normalCount').innerText = normalCount;
+      document.getElementById('stopCount').innerText = stopCount;
       document.getElementById('alarmCount').innerText = alarmCount;
-    });
+      document.getElementById('offlineCount').innerText = offlineCount;
+    }
 
-    // ----------------------------------------------------
-    // ฟังก์ชันแปลงข้อความเวลา (15/08/2026 14:30:05) เป็นมิลลิวินาที
-    // ----------------------------------------------------
+    function startListening() {
+      onValue(ref(db, 'status'), (snapshot) => {
+        statusMap = snapshot.val() || {};
+        refreshAllCards();
+      }, (error) => {
+        connBanner.textContent = '✕ อ่านข้อมูล /status ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
+        connBanner.className = 'error';
+      });
+
+      onValue(ref(db, 'machines'), (snapshot) => {
+        machinesMap = snapshot.val() || {};
+        refreshAllCards();
+      }, (error) => {
+        connBanner.textContent = '✕ อ่านข้อมูล /machines ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
+        connBanner.className = 'error';
+      });
+
+      // เช็คความเก่าของ heartbeat ทุก 5 วินาที แม้ไม่มีข้อมูลใหม่เข้ามา
+      // (จำเป็น เพราะถ้า ESP32 หยุดส่งข้อมูลไปเลย onValue จะไม่ยิง callback ซ้ำให้)
+      setInterval(refreshAllCards, 5000);
+
+      const logsQuery = query(ref(db, 'logs'), limitToLast(200));
+      onValue(logsQuery, (snapshot) => {
+        renderHistory(snapshot.val());
+      }, (error) => {
+        connBanner.textContent = '✕ อ่านข้อมูล /logs ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
+        connBanner.className = 'error';
+      });
+    }
+
+    function tickClock() {
+      const now = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      document.getElementById('clock').innerText = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
     function parseTimestamp(ts) {
       if (!ts) return 0;
       const parts = ts.split(' ');
       if (parts.length === 2) {
-        const d = parts[0].split('/'); // วัน/เดือน/ปี
-        const t = parts[1].split(':'); // ชั่วโมง:นาที:วินาที
+        const d = parts[0].split('/');
+        const t = parts[1].split(':');
         if (d.length === 3 && t.length >= 2) {
           return new Date(d[2], d[1] - 1, d[0], t[0], t[1], t[2] || 0).getTime();
         }
@@ -229,86 +398,81 @@
       return 0;
     }
 
-    // ----------------------------------------------------
-    // ดักฟัง Logs และคำนวณระยะเวลา (ดึงมาเผื่อ 200 โชว์แค่ 80)
-    // ----------------------------------------------------
-    const logsQuery = query(ref(db, 'logs'), limitToLast(200));
-    
-    onValue(logsQuery, (snapshot) => {
-      const data = snapshot.val();
+    // *** แก้ที่ 4: รองรับสถานะทั้งหมดที่ ESP32 ส่งจริง (ดู logStatusToWeb ในโค้ด ESP32) ***
+    // ตัด OFFLINE/ONLINE ที่เว็บเคย push เองออก เพื่อไม่ให้ log ซ้อนกับของ ESP32
+    // (การแสดงผลออฟไลน์บนกริดยังทำอยู่ผ่าน heartbeat ด้านบน แค่ไม่ push log ซ้ำจากฝั่งเว็บ)
+    const STATUS_DISPLAY = {
+      ALARM:     { cls: 'tag-alarm',   label: 'ALARM' },
+      STOP:      { cls: 'tag-warn',    label: 'หยุดชั่วคราว' },
+      OK:        { cls: 'tag-ok',      label: 'ปกติ' },
+      COMM_LOST: { cls: 'tag-offline', label: 'ขาดการเชื่อมต่อ HMI' },
+      COMM_OK:   { cls: 'tag-info',    label: 'เชื่อมต่อ HMI กลับมาแล้ว' },
+      POWER_OFF: { cls: 'tag-offline', label: 'ไฟดับ (ตรวจพบย้อนหลัง)' },
+      POWER_ON:  { cls: 'tag-info',    label: 'ไฟกลับมา' },
+    };
+    // เหตุการณ์ที่ถือว่า "เครื่องเริ่มหยุด" กับ "เครื่องกลับมาทำงาน" ครบทุก status ที่ ESP32 ส่งจริง
+    const DOWNTIME_START_STATUSES = new Set(['ALARM', 'STOP', 'COMM_LOST', 'POWER_OFF']);
+    const DOWNTIME_END_STATUSES   = new Set(['OK', 'COMM_OK', 'POWER_ON']);
+
+    function renderHistory(data) {
       const tbody = document.getElementById('historyTableBody');
       tbody.innerHTML = '';
 
       if (!data) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color: #888;">ยังไม่มีประวัติ</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ยังไม่มีประวัติ</td></tr>`;
         return;
       }
 
       const rawLogs = Object.keys(data).map(key => data[key]);
-      let activeAlarms = {};
+      let activeDowntime = {};
       let processedLogs = [];
 
-      // วนลูปจับคู่เวลาเพื่อหาผลต่าง
       rawLogs.forEach(log => {
         const machineKey = (log.dept || '') + '_' + (log.machine || '');
+        const status = String(log.status);
         let downtimeStr = '';
-        const isAlarm = log.status === 'ALARM' || log.status === 1;
-        const isOk = log.status === 'OK' || log.status === 0;
 
-        if (isAlarm) {
-          // เก็บเวลาเริ่มต้นเมื่อเกิด Alarm
-          activeAlarms[machineKey] = parseTimestamp(log.timestamp);
-        } else if (isOk) {
-          // ถ้ากลับมา OK ให้เอาเวลามาลบกัน
-          if (activeAlarms[machineKey]) {
-            const startTime = activeAlarms[machineKey];
+        if (DOWNTIME_START_STATUSES.has(status)) {
+          activeDowntime[machineKey] = parseTimestamp(log.timestamp);
+        } else if (DOWNTIME_END_STATUSES.has(status)) {
+          if (activeDowntime[machineKey]) {
+            const startTime = activeDowntime[machineKey];
             const endTime = parseTimestamp(log.timestamp);
-            
             if (startTime > 0 && endTime > startTime) {
               const diffMs = endTime - startTime;
               const diffMins = Math.floor(diffMs / 60000);
               const diffSecs = Math.floor((diffMs % 60000) / 1000);
-              
-              if (diffMins > 0) {
-                downtimeStr = `(หยุดไป ${diffMins} นาที ${diffSecs} วินาที)`;
-              } else {
-                downtimeStr = `(หยุดไป ${diffSecs} วินาที)`;
-              }
+              downtimeStr = diffMins > 0
+                ? `หยุดไป ${diffMins} นาที ${diffSecs} วินาที`
+                : `หยุดไป ${diffSecs} วินาที`;
             }
-            delete activeAlarms[machineKey]; // เคลียร์ค่า
+            delete activeDowntime[machineKey];
           }
         }
 
-        processedLogs.push({ ...log, downtimeStr, isAlarm });
+        processedLogs.push({ ...log, downtimeStr, status });
       });
 
-      // พลิกเอาใหม่สุดขึ้นก่อน แล้วตัดมาโชว์แค่ 80 บรรทัด
       const displayLogs = processedLogs.reverse().slice(0, 80);
 
       displayLogs.forEach(log => {
         const tr = document.createElement('tr');
-        
-        // จัดการหน้าตาสถานะและเวลาหยุด
-        let statusHtml = '';
-        if (log.isAlarm) {
-          statusHtml = `<span class="badge-alarm">🚨 ALARM</span>`;
-        } else {
-          statusHtml = `<span class="badge-ok">✅ ปกติ (OK)</span>`;
-          // ถ้ามีเวลาหยุดที่คำนวณไว้ ให้แสดงตัวหนังสือสีเหลืองใต้ป้าย OK
-          if (log.downtimeStr) {
-            statusHtml += `<span class="downtime-text">⏱️ ${log.downtimeStr}</span>`;
-          }
+        const d = STATUS_DISPLAY[log.status] || { cls: 'tag-offline', label: log.status };
+
+        let statusCell = `<span class="tag ${d.cls}"><span class="dot"></span>${d.label}</span>`;
+        if (log.downtimeStr) {
+          statusCell += `<span class="downtime-note">${log.downtimeStr}</span>`;
         }
 
         tr.innerHTML = `
-          <td>${log.timestamp || '-'}</td>
+          <td class="ts">${log.timestamp || '-'}</td>
           <td>${log.dept || '-'}</td>
           <td>${log.machine || '-'}</td>
-          <td>${statusHtml}</td>
+          <td>${statusCell}</td>
         `;
         tbody.appendChild(tr);
       });
-    });
+    }
   </script>
 
 </body>
