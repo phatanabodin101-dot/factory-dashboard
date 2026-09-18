@@ -128,7 +128,11 @@
     background: var(--ok);
     border: 1px solid rgba(0,0,0,0.25);
     overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
+  .machine-tile:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+  .machine-tile.tile-selected { outline: 2px solid var(--text); outline-offset: 1px; }
   .machine-tile .tile-label { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.78); z-index: 1; }
   .machine-tile .tile-status { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em; color: rgba(0,0,0,0.6); z-index: 1; }
 
@@ -147,9 +151,52 @@
   .machine-tile.offline .tile-status { color: var(--offline-text); }
 
   .history-panel { margin: 0 28px; background: var(--panel); border: 1px solid var(--border); }
-  .history-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; }
+  .history-panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
   .history-panel-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
-  .history-panel-header .count-note { font-size: 12.5px; color: var(--text-dim); }
+
+  .history-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .history-filters select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .history-filters select:focus { outline: 1px solid var(--accent-med); }
+
+  .filter-chip {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: var(--info-tint);
+    color: var(--info-text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 5px 10px 5px 12px;
+    border-radius: 3px;
+  }
+  .filter-chip.visible { display: inline-flex; }
+  .filter-chip button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+
   .table-scroll { max-height: 520px; overflow-y: auto; }
   table { width: 100%; border-collapse: collapse; }
   thead th { position: sticky; top: 0; background: var(--panel-2); text-align: left; font-size: 12px; font-weight: 600; color: var(--text-dim); padding: 10px 20px; border-bottom: 2px solid var(--accent-med); letter-spacing: 0.02em; }
@@ -234,7 +281,21 @@
   <div class="history-panel">
     <div class="history-panel-header">
       <h2>ประวัติการแจ้งเตือนและระยะเวลาหยุดเครื่อง</h2>
-      <span class="count-note">80 รายการล่าสุด</span>
+      <div class="history-filters">
+        <span class="filter-chip" id="filterChip">
+          <span id="filterChipLabel"></span>
+          <button id="filterChipClear" title="ล้างตัวกรอง">✕</button>
+        </span>
+        <select id="deptFilter">
+          <option value="">ทุกแผนก</option>
+          <option value="หักเม็ด">แผนกหักเม็ด</option>
+          <option value="หักแท่ง">แผนกหักแท่ง</option>
+        </select>
+        <select id="machineFilter">
+          <option value="">ทุกเครื่อง</option>
+        </select>
+        <span class="count-note" id="countNote">80 รายการล่าสุด</span>
+      </div>
     </div>
     <div class="table-scroll">
       <table>
@@ -268,8 +329,6 @@
     const db = getDatabase(app);
     const connBanner = document.getElementById('connBanner');
 
-    // *** แก้ที่ 1: ต้อง sign-in แบบ Anonymous ก่อนถึงจะอ่านข้อมูลได้ ***
-    // (ต้องเปิด Authentication > Sign-in method > Anonymous ใน Firebase Console ไว้แล้ว เหมือนฝั่ง ESP32)
     onAuthStateChanged(authInst, (user) => {
       if (user) {
         connBanner.textContent = '● เชื่อมต่อ Firebase สำเร็จ';
@@ -283,17 +342,31 @@
       connBanner.className = 'error';
     });
 
-    // ค่าที่เก่ากว่านี้ (วินาที) ถือว่าเครื่องขาดการติดต่อกับ Firebase จริงๆ
-    // *** แก้ที่ 3: ใช้ heartbeatMs (เวลาจาก Firebase server) แทน lastUpdate (นาฬิกา ESP32 ที่ไม่น่าเชื่อถือ) ***
-    const OFFLINE_THRESHOLD_SEC = 40; // มากกว่า HEARTBEAT_INTERVAL_MS ฝั่ง ESP32 (15s) พอสมควร กันตีความ delay ปกติผิด
+    const OFFLINE_THRESHOLD_SEC = 40;
 
     const gridMed = document.getElementById('gridHakMed');
     const gridThang = document.getElementById('gridHakThang');
 
+    // เก็บ label ที่โชว์บนกล่อง (S001, P001, ...) คู่กับ dataKey (med_m1, thang_m1, ...) และแผนกไว้ด้วย
+    // เพื่อให้ dropdown filter และการคลิกกล่องอ้างอิงกลับไปหา dept/machine ที่ใช้จริงใน /logs ได้ถูกต้อง
+    const machineMeta = {}; // dataKey -> { label, dept }
+
     const medKeys = [];
     const thangKeys = [];
-    for (let i = 1; i <= 42; i++) { medKeys.push(`med_m${i}`); gridMed.appendChild(createTile(`med_m${i}`, `S${String(i).padStart(3, '0')}`)); }
-    for (let i = 1; i <= 38; i++) { thangKeys.push(`thang_m${i}`); gridThang.appendChild(createTile(`thang_m${i}`, `P${String(i).padStart(3, '0')}`)); }
+    for (let i = 1; i <= 42; i++) {
+      const key = `med_m${i}`;
+      const label = `S${String(i).padStart(3, '0')}`;
+      machineMeta[key] = { label, dept: 'หักเม็ด' };
+      medKeys.push(key);
+      gridMed.appendChild(createTile(key, label));
+    }
+    for (let i = 1; i <= 38; i++) {
+      const key = `thang_m${i}`;
+      const label = `P${String(i).padStart(3, '0')}`;
+      machineMeta[key] = { label, dept: 'หักแท่ง' };
+      thangKeys.push(key);
+      gridThang.appendChild(createTile(key, label));
+    }
     const allKeys = [...medKeys, ...thangKeys];
 
     function createTile(dataKey, displayLabel) {
@@ -301,11 +374,94 @@
       tile.id = `card-${dataKey}`;
       tile.className = 'machine-tile';
       tile.innerHTML = `<span class="tile-label">${displayLabel}</span><span class="tile-status" id="status-${dataKey}">OK</span>`;
+      tile.addEventListener('click', () => selectMachineFilter(dataKey));
       return tile;
     }
 
-    let statusMap = {};   // /status/<key> -> 0/1/2 (offline คำนวณจาก heartbeat ต่างหาก ไม่ได้มาจาก field นี้)
-    let machinesMap = {}; // /machines/<key> -> { heartbeatMs, ... }
+    // ---------------- ตัวกรองประวัติ (แผนก / เครื่องจักร) ----------------
+    const deptFilterEl = document.getElementById('deptFilter');
+    const machineFilterEl = document.getElementById('machineFilter');
+    const filterChip = document.getElementById('filterChip');
+    const filterChipLabel = document.getElementById('filterChipLabel');
+    const filterChipClear = document.getElementById('filterChipClear');
+
+    // เติม dropdown เลือกเครื่องจักรตามแผนกที่เลือก (หรือทั้งหมดถ้ายังไม่เลือกแผนก)
+    function populateMachineFilter() {
+      const selectedDept = deptFilterEl.value;
+      const keys = !selectedDept ? allKeys
+                 : selectedDept === 'หักเม็ด' ? medKeys
+                 : thangKeys;
+
+      machineFilterEl.innerHTML = '<option value="">ทุกเครื่อง</option>';
+      keys.forEach((key) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = machineMeta[key].label;
+        machineFilterEl.appendChild(opt);
+      });
+    }
+    populateMachineFilter();
+
+    function currentFilter() {
+      return { dept: deptFilterEl.value, machineKey: machineFilterEl.value };
+    }
+
+    function updateFilterChip() {
+      const { dept, machineKey } = currentFilter();
+      if (machineKey) {
+        filterChipLabel.textContent = `กำลังกรอง: ${machineMeta[machineKey].label}`;
+        filterChip.classList.add('visible');
+      } else if (dept) {
+        filterChipLabel.textContent = `กำลังกรอง: แผนก${dept}`;
+        filterChip.classList.add('visible');
+      } else {
+        filterChip.classList.remove('visible');
+      }
+    }
+
+    function selectMachineFilter(dataKey) {
+      deptFilterEl.value = machineMeta[dataKey].dept;
+      populateMachineFilter();
+      machineFilterEl.value = dataKey;
+      updateFilterChip();
+      renderHistory(latestLogsData);
+      highlightSelectedTile();
+      document.querySelector('.history-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function highlightSelectedTile() {
+      const { machineKey } = currentFilter();
+      allKeys.forEach((key) => {
+        const tile = document.getElementById(`card-${key}`);
+        if (!tile) return;
+        tile.classList.toggle('tile-selected', key === machineKey);
+      });
+    }
+
+    deptFilterEl.addEventListener('change', () => {
+      machineFilterEl.value = '';
+      populateMachineFilter();
+      updateFilterChip();
+      highlightSelectedTile();
+      renderHistory(latestLogsData);
+    });
+    machineFilterEl.addEventListener('change', () => {
+      updateFilterChip();
+      highlightSelectedTile();
+      renderHistory(latestLogsData);
+    });
+    filterChipClear.addEventListener('click', () => {
+      deptFilterEl.value = '';
+      populateMachineFilter();
+      machineFilterEl.value = '';
+      updateFilterChip();
+      highlightSelectedTile();
+      renderHistory(latestLogsData);
+    });
+
+    let statusMap = {};
+    let machinesMap = {};
+    let latestLogsData = null;
 
     function refreshAllCards() {
       const nowMs = Date.now();
@@ -318,9 +474,9 @@
 
         const heartbeatMs = machinesMap[dataKey] ? machinesMap[dataKey].heartbeatMs : undefined;
         const isStale = !heartbeatMs || ((nowMs - heartbeatMs) / 1000 > OFFLINE_THRESHOLD_SEC);
-        const code = statusMap[dataKey]; // 0=เขียว 1=แดง 2=เหลือง 3=เทา(ESP32 บอกเองว่า comm lost)
+        const code = statusMap[dataKey];
 
-        // ออฟไลน์จริง: heartbeat เก่าเกินไป (เว็บตรวจเอง) หรือ ESP32 ส่งรหัส 3 มาเอง (comm lost กับ HMI)
+        const wasSelected = tile.classList.contains('tile-selected');
         if (isStale || code === 3) {
           tile.className = 'machine-tile offline';
           text.innerText = 'ออฟไลน์';
@@ -330,7 +486,6 @@
           text.innerText = 'ALARM';
           alarmCount++;
         } else if (code === 2) {
-          // *** แก้ที่ 2: เพิ่มการรองรับสถานะเหลือง (หยุดชั่วคราว) ที่หายไปจากเวอร์ชันก่อน ***
           tile.className = 'machine-tile stop';
           text.innerText = 'หยุด';
           stopCount++;
@@ -339,6 +494,7 @@
           text.innerText = 'OK';
           normalCount++;
         }
+        if (wasSelected) tile.classList.add('tile-selected');
       });
 
       document.getElementById('normalCount').innerText = normalCount;
@@ -364,13 +520,12 @@
         connBanner.className = 'error';
       });
 
-      // เช็คความเก่าของ heartbeat ทุก 5 วินาที แม้ไม่มีข้อมูลใหม่เข้ามา
-      // (จำเป็น เพราะถ้า ESP32 หยุดส่งข้อมูลไปเลย onValue จะไม่ยิง callback ซ้ำให้)
       setInterval(refreshAllCards, 5000);
 
       const logsQuery = query(ref(db, 'logs'), limitToLast(200));
       onValue(logsQuery, (snapshot) => {
-        renderHistory(snapshot.val());
+        latestLogsData = snapshot.val();
+        renderHistory(latestLogsData);
       }, (error) => {
         connBanner.textContent = '✕ อ่านข้อมูล /logs ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
         connBanner.className = 'error';
@@ -398,9 +553,6 @@
       return 0;
     }
 
-    // *** แก้ที่ 4: รองรับสถานะทั้งหมดที่ ESP32 ส่งจริง (ดู logStatusToWeb ในโค้ด ESP32) ***
-    // ตัด OFFLINE/ONLINE ที่เว็บเคย push เองออก เพื่อไม่ให้ log ซ้อนกับของ ESP32
-    // (การแสดงผลออฟไลน์บนกริดยังทำอยู่ผ่าน heartbeat ด้านบน แค่ไม่ push log ซ้ำจากฝั่งเว็บ)
     const STATUS_DISPLAY = {
       ALARM:     { cls: 'tag-alarm',   label: 'ALARM' },
       STOP:      { cls: 'tag-warn',    label: 'หยุดชั่วคราว' },
@@ -410,19 +562,25 @@
       POWER_OFF: { cls: 'tag-offline', label: 'ไฟดับ (ตรวจพบย้อนหลัง)' },
       POWER_ON:  { cls: 'tag-info',    label: 'ไฟกลับมา' },
     };
-    // เหตุการณ์ที่ถือว่า "เครื่องเริ่มหยุด" กับ "เครื่องกลับมาทำงาน" ครบทุก status ที่ ESP32 ส่งจริง
     const DOWNTIME_START_STATUSES = new Set(['ALARM', 'STOP', 'COMM_LOST', 'POWER_OFF']);
     const DOWNTIME_END_STATUSES   = new Set(['OK', 'COMM_OK', 'POWER_ON']);
 
     function renderHistory(data) {
       const tbody = document.getElementById('historyTableBody');
+      const countNote = document.getElementById('countNote');
       tbody.innerHTML = '';
 
       if (!data) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ยังไม่มีประวัติ</td></tr>`;
+        countNote.textContent = '0 รายการ';
         return;
       }
 
+      const { dept: filterDept, machineKey: filterMachineKey } = currentFilter();
+      const filterMachineLabel = filterMachineKey ? machineMeta[filterMachineKey].label : null;
+
+      // จับคู่เวลาหยุด/กลับมาทำงาน ต้องทำกับ "ข้อมูลดิบทั้งหมด" ก่อนกรอง ไม่ใช่หลังกรอง
+      // ไม่งั้นถ้ากรองออกไปตัวใดตัวหนึ่งของคู่ จะจับคู่หาเวลาหยุดไม่ได้
       const rawLogs = Object.keys(data).map(key => data[key]);
       let activeDowntime = {};
       let processedLogs = [];
@@ -453,7 +611,21 @@
         processedLogs.push({ ...log, downtimeStr, status });
       });
 
-      const displayLogs = processedLogs.reverse().slice(0, 80);
+      // กรองตามแผนก/เครื่องจักรที่เลือกไว้ (ทำหลังจับคู่ downtime เสร็จแล้ว)
+      let filtered = processedLogs;
+      if (filterMachineLabel) {
+        filtered = filtered.filter(log => log.machine === filterMachineLabel);
+      } else if (filterDept) {
+        filtered = filtered.filter(log => log.dept === filterDept);
+      }
+
+      const displayLogs = filtered.reverse().slice(0, 80);
+      countNote.textContent = `${displayLogs.length} รายการล่าสุด` + (filterMachineLabel || filterDept ? ' (กรองอยู่)' : '');
+
+      if (displayLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ไม่มีประวัติของตัวกรองนี้</td></tr>`;
+        return;
+      }
 
       displayLogs.forEach(log => {
         const tr = document.createElement('tr');
