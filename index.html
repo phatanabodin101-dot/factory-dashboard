@@ -315,7 +315,6 @@
     border: 1px solid var(--border-color); padding: 8px 12px;
     border-radius: 8px; font-family: inherit; font-size: 13px;
     outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-    /* บังคับไอคอนให้สว่างขึ้นเวลาเปิดโหมด Dark */
     color-scheme: var(--scheme); 
   }
   .filters select:focus, .filters input:focus { 
@@ -374,6 +373,8 @@
   @media (max-width: 768px) {
     body {
       flex-direction: column;
+      height: auto;
+      min-height: 100vh;
       overflow-y: auto;
     }
     
@@ -383,9 +384,11 @@
       border-right: none;
       border-bottom: 1px solid var(--border-color);
       padding: 16px;
+      overflow-y: visible;
     }
     
     .main-content {
+      flex: none; 
       overflow-y: visible;
     }
     
