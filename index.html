@@ -1,355 +1,537 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPUTTERING</title>
+<title>SPUTTERING Dashboard App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0b0e13;
-    --panel: #12161d;
-    --panel-2: #171c24;
-    --border: #262c36;
-    --border-soft: #1d232c;
-
-    --text: #e8edf3;
-    --text-dim: #8b96a5;
-    --text-faint: #565f6b;
-
-    --accent-med: #4c8dd9;
-    --accent-thang: #c9932f;
-
-    --ok: #2fa84f;
-    --ok-tint: rgba(47,168,79,0.14);
-    --ok-text: #6fe08c;
-
-    --alarm: #d6423c;
-    --alarm-tint: rgba(214,66,60,0.16);
-    --alarm-text: #ff8f88;
-
-    --offline: #565f6b;
-    --offline-tint: rgba(138,146,160,0.12);
-    --offline-text: #b7bec9;
-
-    --info: #4c8dd9;
-    --info-tint: rgba(76,141,217,0.14);
-    --info-text: #8fc1ff;
-
-    --warn: #c9932f;
-    --warn-tint: rgba(201,147,47,0.16);
-    --warn-text: #f0c15e;
-
-    --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
-    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+  /* ================= THEME VARIABLES ================= */
+  :root[data-theme="light"] {
+    --scheme: light;
+    --bg-app: #f0f4f8;
+    --bg-sidebar: #ffffff;
+    --bg-panel: #ffffff;
+    --border-color: #e2e8f0;
+    --text-main: #334155;
+    --text-muted: #64748b;
+    
+    --ok-bg: #d1fae5; --ok-text: #065f46; --ok-border: #a7f3d0;
+    --alarm-bg: #fee2e2; --alarm-text: #991b1b; --alarm-border: #fca5a5;
+    --alarm-glow: rgba(239, 68, 68, 0.4);
+    --warn-bg: #fef3c7; --warn-text: #92400e; --warn-border: #fde68a;
+    --offline-bg: #f1f5f9; --offline-text: #475569; --offline-border: #e2e8f0;
+    --info-bg: #dbeafe; --info-text: #1e40af; --info-border: #bfdbfe;
+    
+    --th-bg: #f8fafc;
+    --scroll-thumb: #cbd5e1;
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
-  * { box-sizing: border-box; }
+  :root[data-theme="dark"] {
+    --scheme: dark;
+    --bg-app: #06090f;
+    --bg-sidebar: #0d121c;
+    --bg-panel: #131a26;
+    --border-color: #212c40;
+    --text-main: #f0f6fc;
+    --text-muted: #8b949e;
+    
+    --ok-bg: rgba(35, 134, 54, 0.15); --ok-text: #3fb950; --ok-border: #238636;
+    --alarm-bg: rgba(218, 54, 51, 0.2); --alarm-text: #ff7b72; --alarm-border: #da3633;
+    --alarm-glow: rgba(255, 123, 114, 0.3);
+    --warn-bg: rgba(210, 153, 34, 0.15); --warn-text: #e3b341; --warn-border: #d29922;
+    --offline-bg: #161b22; --offline-text: #8b949e; --offline-border: #30363d;
+    --info-bg: rgba(31, 111, 235, 0.2); --info-text: #58a6ff; --info-border: #1f6feb;
+    
+    --th-bg: #161f2e;
+    --scroll-thumb: rgba(255,255,255,0.15);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body, .sidebar, .main-content, .dept-box, .kpi-card {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
 
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-sans);
-    padding: 0 0 40px;
+    font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden; 
   }
 
-  #connBanner {
-    padding: 8px 28px;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    background: var(--panel-2);
-    color: var(--text-dim);
-    border-bottom: 1px solid var(--border);
+  /* ================= KEYFRAMES ================= */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
-  #connBanner.error { color: var(--alarm-text); background: var(--alarm-tint); }
-  #connBanner.ok { color: var(--ok-text); }
 
-  .plant-header {
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-    padding: 18px 28px;
+  @keyframes pulseAlarm {
+    0% { box-shadow: 0 0 0 0 var(--alarm-glow); }
+    70% { box-shadow: 0 0 0 10px rgba(255,0,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,0,0,0); }
+  }
+
+  @keyframes numberPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); color: var(--info-text); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes spinFlip {
+    0% { transform: rotate(0) scale(1); }
+    50% { transform: rotate(180deg) scale(0.7); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  @keyframes pulseLive { 
+    0% { opacity: 1; transform: scale(1); } 
+    50% { opacity: 0.4; transform: scale(1.2); } 
+    100% { opacity: 1; transform: scale(1); } 
+  }
+
+  /* ================= LAYOUT ================= */
+  .sidebar {
+    width: 280px;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    z-index: 10;
+    overflow-y: auto;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    scroll-behavior: smooth;
+  }
+
+  /* ================= SIDEBAR ================= */
+  .brand-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .brand-title { font-size: 22px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px; }
+  .brand-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .theme-btn {
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    transition: all 0.2s;
+  }
+  .theme-btn:hover { border-color: var(--info-text); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .theme-btn.animating { animation: spinFlip 0.5s ease-in-out; }
+  
+  .conn-status {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    padding: 8px 12px; border-radius: 8px; margin-bottom: 20px;
+    background: var(--bg-app); border: 1px solid var(--border-color);
+    transition: all 0.3s;
+  }
+  .conn-status.ok { border-color: var(--ok-border); color: var(--ok-text); background: var(--ok-bg); }
+  .conn-status.error { border-color: var(--alarm-border); color: var(--alarm-text); background: var(--alarm-bg); }
+
+  .clock-widget {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    padding: 16px; border-radius: 12px; margin-bottom: 24px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .clock-widget:hover { transform: scale(1.02); }
+  .clock-widget .live { color: var(--alarm-text); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 6px;}
+  .clock-widget .live .dot { width: 6px; height: 6px; background: var(--alarm-text); border-radius: 50%; animation: pulseLive 1.5s infinite; }
+  .clock-widget .time { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 700; color: var(--text-main); }
+
+  .kpi-container { display: flex; flex-direction: column; gap: 10px; }
+  .kpi-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-radius: 12px; background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateX(4px); box-shadow: var(--shadow-hover); }
+  .kpi-card .label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+  
+  .kpi-card .value { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700; display: inline-block; }
+  .kpi-card .value.pop-anim { animation: numberPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  
+  .kpi-card.total { border-left: 4px solid var(--info-text); }
+  .kpi-card.ok { border-left: 4px solid var(--ok-border); }
+  .kpi-card.stop { border-left: 4px solid var(--warn-border); }
+  .kpi-card.alarm { border-left: 4px solid var(--alarm-border); }
+  .kpi-card.offline { border-left: 4px solid var(--offline-border); }
+
+  .kpi-card.ok .value { color: var(--ok-text); }
+  .kpi-card.stop .value { color: var(--warn-text); }
+  .kpi-card.alarm .value { color: var(--alarm-text); }
+  .kpi-card.offline .value { color: var(--offline-text); }
+
+  .btn-history {
+    margin-top: 16px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--info-bg);
+    color: var(--info-text);
+    border: 1px solid var(--info-border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .plant-header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
-  .plant-header .subtitle { margin-top: 4px; font-size: 13px; color: var(--text-dim); }
-  .header-right { display: flex; align-items: center; gap: 22px; }
-  .live-pill { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 12px; color: var(--ok-text); letter-spacing: 0.03em; }
-  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px 1px var(--ok); animation: livepulse 1.6s ease-in-out infinite; }
-  @keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-  .clock { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--text); letter-spacing: 0.02em; }
+  .btn-history:hover {
+    background: var(--info-text);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
+  }
 
-  .kpi-row {
+  /* ================= MAIN CONTENT ================= */
+  .grid-section {
+    padding: 24px;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: var(--border);
-    margin: 24px 28px;
-    border: 1px solid var(--border);
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    height: 100%; 
   }
-  .kpi { background: var(--panel); padding: 18px 20px 16px; border-top: 3px solid var(--text-faint); }
-  .kpi.total    { border-top-color: var(--text-dim); }
-  .kpi.normal   { border-top-color: var(--ok); }
-  .kpi.stop     { border-top-color: var(--warn); }
-  .kpi.alarm    { border-top-color: var(--alarm); }
-  .kpi.offline  { border-top-color: var(--offline); }
-  .kpi .value { font-family: var(--font-mono); font-size: 34px; font-weight: 600; line-height: 1; }
-  .kpi.normal .value  { color: var(--ok-text); }
-  .kpi.stop .value    { color: var(--warn-text); }
-  .kpi.alarm .value   { color: var(--alarm-text); }
-  .kpi.offline .value { color: var(--offline-text); }
-  .kpi .label { margin-top: 8px; font-size: 13px; color: var(--text-dim); }
+  @media (max-width: 1200px) { .grid-section { grid-template-columns: 1fr; } }
 
-  .dept-section { margin: 0 28px 28px; }
-  .dept-header { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
-  .dept-header.med   { border-bottom-color: var(--accent-med); }
-  .dept-header.thang { border-bottom-color: var(--accent-thang); }
-  .dept-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
-  .dept-header .range { color: var(--text-dim); font-weight: 400; font-size: 13px; margin-left: 8px; }
-  .dept-count { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); background: var(--panel-2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 3px; }
+  .dept-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .dept-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;
+  }
+  .dept-header h2 { font-size: 16px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+  .dept-header h2::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+  .dept-box.med h2::before { background: var(--info-text); }
+  .dept-box.thang h2::before { background: var(--warn-text); }
+  .dept-header .count { font-size: 11px; background: var(--bg-app); padding: 4px 10px; border-radius: 20px; color: var(--text-muted); }
 
-  .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+  .machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+    gap: 10px;
+  }
 
   .machine-tile {
     position: relative;
-    height: 58px;
-    border-radius: 3px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    background: var(--ok);
-    border: 1px solid rgba(0,0,0,0.25);
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; 
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    animation: fadeInUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s, background-color 0.3s, border-color 0.3s;
+  }
+  
+  .machine-tile:hover { 
+    transform: translateY(-4px) scale(1.05); 
+    z-index: 5; 
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .machine-tile.tile-selected { outline: 2px solid var(--info-text); outline-offset: 2px; }
+  
+  .machine-tile .m-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--text-main); transition: color 0.3s; }
+  .machine-tile .m-status { font-size: 9px; font-weight: 700; padding: 2px 4px; border-radius: 4px; transition: background-color 0.3s, color 0.3s;}
+
+  .machine-tile.ok { background: var(--ok-bg); border-color: var(--ok-border); }
+  .machine-tile.ok .m-status { color: var(--ok-text); background: rgba(255,255,255,0.4); }
+
+  .machine-tile.alarm { 
+    background: var(--alarm-bg); 
+    border-color: var(--alarm-border); 
+    animation: fadeInUp 0.5s forwards, pulseAlarm 1.5s infinite;
+  }
+  .machine-tile.alarm .m-status { color: var(--alarm-text); background: rgba(255,255,255,0.6); }
+
+  .machine-tile.stop { background: var(--warn-bg); border-color: var(--warn-border); }
+  .machine-tile.stop .m-status { color: var(--warn-text); background: rgba(255,255,255,0.4); }
+
+  .machine-tile.offline { background: var(--offline-bg); border-color: var(--offline-border); opacity: 0.7; filter: grayscale(50%); }
+  .machine-tile.offline .m-name { color: var(--text-muted); }
+  .machine-tile.offline .m-status { color: var(--offline-text); }
+
+
+  /* ================= MODAL HISTORY ================= */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.4); z-index: 999;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .modal-overlay.active { display: flex; opacity: 1; }
+  
+  .modal-content {
+    background: var(--bg-app); border: 1px solid var(--border-color);
+    border-radius: 16px; width: 90%; max-width: 900px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    transform: translateY(40px) scale(0.95); 
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  .machine-tile:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
-  .machine-tile.tile-selected { outline: 2px solid var(--text); outline-offset: 1px; }
-  .machine-tile .tile-label { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.78); z-index: 1; }
-  .machine-tile .tile-status { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em; color: rgba(0,0,0,0.6); z-index: 1; }
-
-  .machine-tile.alarm { background: var(--alarm); animation: alarmFlash 0.9s steps(2, jump-none) infinite; }
-  .machine-tile.alarm .tile-label, .machine-tile.alarm .tile-status { color: rgba(255,255,255,0.92); }
-  @keyframes alarmFlash { 0% { filter: brightness(1); } 50% { filter: brightness(0.6); } 100% { filter: brightness(1); } }
-
-  .machine-tile.stop { background: var(--warn); }
-  .machine-tile.stop .tile-label, .machine-tile.stop .tile-status { color: rgba(0,0,0,0.75); }
-
-  .machine-tile.offline {
-    background: repeating-linear-gradient(45deg, #2a2e35, #2a2e35 8px, #1d2026 8px, #1d2026 16px);
-    border: 1px solid var(--border);
-  }
-  .machine-tile.offline .tile-label { color: var(--text-dim); }
-  .machine-tile.offline .tile-status { color: var(--offline-text); }
-
-  .history-panel { margin: 0 28px; background: var(--panel); border: 1px solid var(--border); }
-  .history-panel-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .history-panel-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
-
-  .history-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .history-filters select {
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 6px 10px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .history-filters select:focus { outline: 1px solid var(--accent-med); }
-  .history-filters input[type="date"] {
-    background: var(--panel-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 5px 10px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    cursor: pointer;
-    color-scheme: dark;
-  }
-  .history-filters input[type="date"]:focus { outline: 1px solid var(--accent-med); }
-
-  .filter-chip {
-    display: none;
-    align-items: center;
-    gap: 6px;
-    background: var(--info-tint);
-    color: var(--info-text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    padding: 5px 10px 5px 12px;
-    border-radius: 3px;
-  }
-  .filter-chip.visible { display: inline-flex; }
-  .filter-chip button {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    padding: 0;
+  .modal-overlay.active .modal-content {
+    transform: translateY(0) scale(1);
   }
 
-  .table-scroll { max-height: 520px; overflow-y: auto; }
+  .hist-header {
+    padding: 20px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    background: var(--bg-panel); border-bottom: 1px solid var(--border-color);
+  }
+  .hist-header h2 { font-size: 16px; color: var(--text-main); font-weight: 600; display: flex; align-items: center; gap: 8px;}
+  
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filters select, .filters input {
+    background: var(--bg-app); color: var(--text-main);
+    border: 1px solid var(--border-color); padding: 8px 12px;
+    border-radius: 8px; font-family: inherit; font-size: 13px;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    /* บังคับไอคอนให้สว่างขึ้นเวลาเปิดโหมด Dark */
+    color-scheme: var(--scheme); 
+  }
+  .filters select:focus, .filters input:focus { 
+    border-color: var(--info-text); 
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
+  }
+
+  .btn-clear {
+    background: var(--bg-panel); color: var(--text-main);
+    border: 1px solid var(--border-color); padding: 8px 12px;
+    border-radius: 8px; font-family: inherit; font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-clear:hover { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+
+  .btn-close {
+    background: var(--alarm-bg); color: var(--alarm-text);
+    border: 1px solid var(--alarm-border); border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; font-weight: bold;
+    margin-left: 4px; transition: all 0.2s;
+  }
+  .btn-close:hover { background: var(--alarm-text); color: #fff; transform: rotate(90deg); }
+
+  .hist-body { background: var(--bg-panel); }
+  .table-container { overflow-y: auto; max-height: 50vh; }
   table { width: 100%; border-collapse: collapse; }
-  thead th { position: sticky; top: 0; background: var(--panel-2); text-align: left; font-size: 12px; font-weight: 600; color: var(--text-dim); padding: 10px 20px; border-bottom: 2px solid var(--accent-med); letter-spacing: 0.02em; }
-  tbody td { padding: 12px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border-soft); }
-  tbody tr:hover { background: var(--panel-2); }
-  td.ts { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--th-bg); text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border-color); z-index: 1;}
+  td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid var(--border-color); color: var(--text-main); transition: background-color 0.2s; }
+  tr:hover td { background: var(--bg-app); }
+  
+  .td-time { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); }
+  
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+  
+  .badge-alarm { background: var(--alarm-bg); color: var(--alarm-text); border: 1px solid var(--alarm-border); }
+  .badge-alarm::before { background: var(--alarm-text); }
+  .badge-ok { background: var(--ok-bg); color: var(--ok-text); border: 1px solid var(--ok-border); }
+  .badge-ok::before { background: var(--ok-text); }
+  .badge-warn { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+  .badge-warn::before { background: var(--warn-text); }
+  .badge-offline { background: var(--offline-bg); color: var(--offline-text); border: 1px solid var(--offline-border); }
+  .badge-offline::before { background: var(--offline-text); }
+  .badge-info { background: var(--info-bg); color: var(--info-text); border: 1px solid var(--info-border); }
+  .badge-info::before { background: var(--info-text); }
 
-  .tag { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 3px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
-  .tag .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-  .tag.tag-alarm   { background: var(--alarm-tint);   color: var(--alarm-text); }
-  .tag.tag-alarm .dot   { background: var(--alarm); }
-  .tag.tag-ok      { background: var(--ok-tint);      color: var(--ok-text); }
-  .tag.tag-ok .dot      { background: var(--ok); }
-  .tag.tag-offline { background: var(--offline-tint); color: var(--offline-text); }
-  .tag.tag-offline .dot { background: var(--offline); }
-  .tag.tag-info    { background: var(--info-tint);    color: var(--info-text); }
-  .tag.tag-info .dot    { background: var(--info); }
-  .tag.tag-warn    { background: var(--warn-tint);    color: var(--warn-text); }
-  .tag.tag-warn .dot    { background: var(--warn); }
+  .downtime-txt { display: block; margin-top: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--warn-text); }
 
-  .downtime-note { display: block; margin-top: 5px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); }
-
-  .date-divider td {
-    padding: 10px 20px;
-    background: var(--panel-2);
-    border-bottom: 1px solid var(--border);
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: 0.02em;
-  }
-  .date-divider.today td { color: var(--info-text); }
-  .date-divider .date-count {
-    margin-left: 10px;
-    font-weight: 400;
-    font-size: 11.5px;
-    color: var(--text-dim);
-  }
-
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: var(--panel); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 10px; }
 </style>
 </head>
 <body>
 
-  <div id="connBanner">กำลังเชื่อมต่อ Firebase...</div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand-container">
+      <div>
+        <div class="brand-title">SPUTTERING</div>
+        <div class="brand-subtitle">Monitoring Console</div>
+      </div>
+      <button class="theme-btn" id="themeToggleBtn" title="สลับโหมดมืด/สว่าง">🌙</button>
+    </div>
 
-  <div class="plant-header">
-    <div>
-      <h1>สถานะเครื่องจักรในแผนก SPUTTERING</h1>
-      <div class="subtitle">แผนกหักเม็ด และ แผนกหักแท่ง</div>
-    </div>
-    <div class="header-right">
-      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
-      <div class="clock" id="clock">--:--:--</div>
-    </div>
-  </div>
+    <div id="connBanner" class="conn-status">กำลังเชื่อมต่อฐานข้อมูล...</div>
 
-  <div class="kpi-row">
-    <div class="kpi total">
-      <div class="value" id="totalCount">80</div>
-      <div class="label">เครื่องทั้งหมด</div>
+    <div class="clock-widget">
+      <div class="live"><span class="dot"></span>LIVE SYSTEM</div>
+      <div class="time" id="clock">00:00:00</div>
     </div>
-    <div class="kpi normal">
-      <div class="value" id="normalCount">80</div>
-      <div class="label">ทำงานปกติ</div>
-    </div>
-    <div class="kpi stop">
-      <div class="value" id="stopCount">0</div>
-      <div class="label">หยุดชั่วคราว</div>
-    </div>
-    <div class="kpi alarm">
-      <div class="value" id="alarmCount">0</div>
-      <div class="label">ALARM</div>
-    </div>
-    <div class="kpi offline">
-      <div class="value" id="offlineCount">0</div>
-      <div class="label">ออฟไลน์</div>
-    </div>
-  </div>
 
-  <div class="dept-section">
-    <div class="dept-header med">
-      <h2>แผนกหักเม็ด<span class="range">S001 - S042</span></h2>
-      <span class="dept-count">42 เครื่อง</span>
-    </div>
-    <div class="grid-container" id="gridHakMed"></div>
-  </div>
-
-  <div class="dept-section">
-    <div class="dept-header thang">
-      <h2>แผนกหักแท่ง<span class="range">P001 - P038</span></h2>
-      <span class="dept-count">38 เครื่อง</span>
-    </div>
-    <div class="grid-container" id="gridHakThang"></div>
-  </div>
-
-  <div class="history-panel">
-    <div class="history-panel-header">
-      <h2>ประวัติการแจ้งเตือนและระยะเวลาหยุดเครื่อง</h2>
-      <div class="history-filters">
-        <span class="filter-chip" id="filterChip">
-          <span id="filterChipLabel"></span>
-          <button id="filterChipClear" title="ล้างตัวกรอง">✕</button>
-        </span>
-        <select id="deptFilter">
-          <option value="">ทุกแผนก</option>
-          <option value="หักเม็ด">แผนกหักเม็ด</option>
-          <option value="หักแท่ง">แผนกหักแท่ง</option>
-        </select>
-        <select id="machineFilter">
-          <option value="">ทุกเครื่อง</option>
-        </select>
-        <input type="date" id="dateFilter" title="เลือกวันที่ต้องการดู">
-        <span class="count-note" id="countNote">80 รายการล่าสุด</span>
+    <div class="kpi-container">
+      <div class="kpi-card total">
+        <div>
+          <div class="value" id="totalCount">80</div>
+          <div class="label">เครื่องทั้งหมด</div>
+        </div>
+      </div>
+      <div class="kpi-card ok">
+        <div>
+          <div class="value" id="normalCount">0</div>
+          <div class="label">ทำงานปกติ</div>
+        </div>
+      </div>
+      <div class="kpi-card stop">
+        <div>
+          <div class="value" id="stopCount">0</div>
+          <div class="label">หยุดชั่วคราว</div>
+        </div>
+      </div>
+      <div class="kpi-card alarm">
+        <div>
+          <div class="value" id="alarmCount">0</div>
+          <div class="label">ALARM</div>
+        </div>
+      </div>
+      <div class="kpi-card offline">
+        <div>
+          <div class="value" id="offlineCount">0</div>
+          <div class="label">ออฟไลน์</div>
+        </div>
       </div>
     </div>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>เวลา</th>
-            <th>แผนก</th>
-            <th>เครื่องจักร</th>
-            <th>สถานะ</th>
-          </tr>
-        </thead>
-        <tbody id="historyTableBody">
-          <tr><td colspan="4" style="color:var(--text-dim); padding:20px;">กำลังโหลดข้อมูลประวัติ...</td></tr>
-        </tbody>
-      </table>
+
+    <button class="btn-history" id="openHistBtn">
+      📜 ดูประวัติการแจ้งเตือน
+    </button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <section class="grid-section">
+      <!-- หักเม็ด -->
+      <div class="dept-box med">
+        <div class="dept-header">
+          <h2>แผนกหักเม็ด</h2>
+          <span class="count">S001 - S042 (42 เครื่อง)</span>
+        </div>
+        <div class="machine-grid" id="gridHakMed"></div>
+      </div>
+
+      <!-- หักแท่ง -->
+      <div class="dept-box thang">
+        <div class="dept-header">
+          <h2>แผนกหักแท่ง</h2>
+          <span class="count">P001 - P038 (38 เครื่อง)</span>
+        </div>
+        <div class="machine-grid" id="gridHakThang"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL HISTORY -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-content">
+      <div class="hist-header">
+        <h2>📜 ประวัติการแจ้งเตือน (System Logs)</h2>
+        <div class="filters">
+          <select id="deptFilter">
+            <option value="">ทุกแผนก</option>
+            <option value="หักเม็ด">แผนกหักเม็ด</option>
+            <option value="หักแท่ง">แผนกหักแท่ง</option>
+          </select>
+          <select id="machineFilter">
+            <option value="">ทุกเครื่อง</option>
+          </select>
+          <input type="date" id="dateFilter">
+          <button class="btn-clear" id="clearFilterBtn" title="ล้างการค้นหา">ล้างค่า</button>
+          <button class="btn-close" id="closeHistBtn" title="ปิดหน้าต่าง">✖</button>
+        </div>
+      </div>
+      
+      <div class="hist-body">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>เวลา (Time)</th>
+                <th>แผนก (Dept)</th>
+                <th>รหัสเครื่อง (ID)</th>
+                <th>สถานะ (Status) & ระยะเวลา</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">กำลังโหลดข้อมูล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- FIREBASE & LOGIC SCRIPT -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getDatabase, ref, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // Theme Toggle Logic
+    const htmlEl = document.documentElement;
+    const themeBtn = document.getElementById('themeToggleBtn');
+    
+    const savedTheme = localStorage.getItem('sputtering_theme') || 'light';
+    htmlEl.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+      themeBtn.classList.add('animating');
+      setTimeout(() => themeBtn.classList.remove('animating'), 500);
+
+      const currentTheme = htmlEl.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      htmlEl.setAttribute('data-theme', newTheme);
+      localStorage.setItem('sputtering_theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+
+    function updateThemeIcon(theme) {
+      themeBtn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    // Modal Control Logic
+    const historyModal = document.getElementById('historyModal');
+    const openHistBtn = document.getElementById('openHistBtn');
+    const closeHistBtn = document.getElementById('closeHistBtn');
+
+    openHistBtn.addEventListener('click', () => { historyModal.classList.add('active'); });
+    closeHistBtn.addEventListener('click', () => { historyModal.classList.remove('active'); });
+    historyModal.addEventListener('click', (e) => {
+      if (e.target === historyModal) historyModal.classList.remove('active');
+    });
+
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyC7qrwVsl_F4zgCVnfMwvBxxdA_AfDCG04",
       databaseURL: "https://factory-monitoring-65f56-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -363,22 +545,31 @@
     onAuthStateChanged(authInst, (user) => {
       if (user) {
         connBanner.textContent = '● เชื่อมต่อ Firebase สำเร็จ';
-        connBanner.className = 'ok';
+        connBanner.className = 'conn-status ok';
         startListening();
       }
     });
 
     signInAnonymously(authInst).catch((error) => {
-      connBanner.textContent = '✕ เชื่อมต่อ Firebase ไม่สำเร็จ: ' + error.message + ' (เช็คว่าเปิด Anonymous sign-in ใน Firebase Console แล้วหรือยัง)';
-      connBanner.className = 'error';
+      connBanner.textContent = '✕ เชื่อมต่อล้มเหลว: ' + error.message;
+      connBanner.className = 'conn-status error';
     });
 
     const OFFLINE_THRESHOLD_SEC = 40;
 
     const gridMed = document.getElementById('gridHakMed');
     const gridThang = document.getElementById('gridHakThang');
+    const machineMeta = {}; 
 
-    const machineMeta = {}; // dataKey -> { label, dept }
+    function createTile(dataKey, displayLabel, indexDelay) {
+      const tile = document.createElement('div');
+      tile.id = `card-${dataKey}`;
+      tile.className = 'machine-tile ok';
+      tile.style.animationDelay = `${indexDelay * 0.015}s`;
+      tile.innerHTML = `<span class="m-name">${displayLabel}</span><span class="m-status" id="status-${dataKey}">OK</span>`;
+      tile.addEventListener('click', () => selectMachineFilter(dataKey));
+      return tile;
+    }
 
     const medKeys = [];
     const thangKeys = [];
@@ -387,52 +578,25 @@
       const label = `S${String(i).padStart(3, '0')}`;
       machineMeta[key] = { label, dept: 'หักเม็ด' };
       medKeys.push(key);
-      gridMed.appendChild(createTile(key, label));
+      gridMed.appendChild(createTile(key, label, i));
     }
     for (let i = 1; i <= 38; i++) {
       const key = `thang_m${i}`;
       const label = `P${String(i).padStart(3, '0')}`;
       machineMeta[key] = { label, dept: 'หักแท่ง' };
       thangKeys.push(key);
-      gridThang.appendChild(createTile(key, label));
+      gridThang.appendChild(createTile(key, label, i + 42));
     }
     const allKeys = [...medKeys, ...thangKeys];
-
-    function createTile(dataKey, displayLabel) {
-      const tile = document.createElement('div');
-      tile.id = `card-${dataKey}`;
-      tile.className = 'machine-tile';
-      tile.innerHTML = `<span class="tile-label">${displayLabel}</span><span class="tile-status" id="status-${dataKey}">OK</span>`;
-      tile.addEventListener('click', () => selectMachineFilter(dataKey));
-      return tile;
-    }
 
     const deptFilterEl = document.getElementById('deptFilter');
     const machineFilterEl = document.getElementById('machineFilter');
     const dateFilterEl = document.getElementById('dateFilter');
-    const filterChip = document.getElementById('filterChip');
-    const filterChipLabel = document.getElementById('filterChipLabel');
-    const filterChipClear = document.getElementById('filterChipClear');
-
-    // แปลง yyyy-mm-dd (ค่าจาก <input type="date">) เป็น dd/mm/yyyy (รูปแบบเดียวกับ timestamp ใน log)
-    function isoDateToDmyKey(iso) {
-      if (!iso) return '';
-      const [y, m, d] = iso.split('-');
-      return `${d}/${m}/${y}`;
-    }
-
-    function isoDateToDisplay(iso) {
-      if (!iso) return '';
-      const [y, m, d] = iso.split('-');
-      return `${d}/${m}/${y}`;
-    }
+    const clearFilterBtn = document.getElementById('clearFilterBtn'); // ปุ่มเคลียร์ฟิลเตอร์ใหม่
 
     function populateMachineFilter() {
       const selectedDept = deptFilterEl.value;
-      const keys = !selectedDept ? allKeys
-                 : selectedDept === 'หักเม็ด' ? medKeys
-                 : thangKeys;
-
+      const keys = !selectedDept ? allKeys : selectedDept === 'หักเม็ด' ? medKeys : thangKeys;
       machineFilterEl.innerHTML = '<option value="">ทุกเครื่อง</option>';
       keys.forEach((key) => {
         const opt = document.createElement('option');
@@ -447,69 +611,49 @@
       return { dept: deptFilterEl.value, machineKey: machineFilterEl.value, dateIso: dateFilterEl.value };
     }
 
-    function updateFilterChip() {
-      const { dept, machineKey, dateIso } = currentFilter();
-      const parts = [];
-      if (machineKey) parts.push(machineMeta[machineKey].label);
-      else if (dept) parts.push(`แผนก${dept}`);
-      if (dateIso) parts.push(isoDateToDisplay(dateIso));
-
-      if (parts.length) {
-        filterChipLabel.textContent = `กำลังกรอง: ${parts.join(' • ')}`;
-        filterChip.classList.add('visible');
-      } else {
-        filterChip.classList.remove('visible');
-      }
-    }
-
     function selectMachineFilter(dataKey) {
       deptFilterEl.value = machineMeta[dataKey].dept;
       populateMachineFilter();
       machineFilterEl.value = dataKey;
-      updateFilterChip();
       renderHistory(latestLogsData);
-      highlightSelectedTile();
-      document.querySelector('.history-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function highlightSelectedTile() {
-      const { machineKey } = currentFilter();
-      allKeys.forEach((key) => {
-        const tile = document.getElementById(`card-${key}`);
-        if (!tile) return;
-        tile.classList.toggle('tile-selected', key === machineKey);
+      allKeys.forEach(k => {
+        const t = document.getElementById(`card-${k}`);
+        if(t) t.classList.toggle('tile-selected', k === dataKey);
       });
+      historyModal.classList.add('active');
     }
 
-    deptFilterEl.addEventListener('change', () => {
-      machineFilterEl.value = '';
-      populateMachineFilter();
-      updateFilterChip();
-      highlightSelectedTile();
-      renderHistory(latestLogsData);
-    });
-    machineFilterEl.addEventListener('change', () => {
-      updateFilterChip();
-      highlightSelectedTile();
-      renderHistory(latestLogsData);
-    });
-    dateFilterEl.addEventListener('change', () => {
-      updateFilterChip();
-      renderHistory(latestLogsData);
-    });
-    filterChipClear.addEventListener('click', () => {
+    deptFilterEl.addEventListener('change', () => { machineFilterEl.value = ''; populateMachineFilter(); renderHistory(latestLogsData); });
+    machineFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
+    dateFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
+
+    // ฟังก์ชันสำหรับเคลียร์ค่าตัวกรอง
+    clearFilterBtn.addEventListener('click', () => {
       deptFilterEl.value = '';
+      dateFilterEl.value = '';
       populateMachineFilter();
       machineFilterEl.value = '';
-      dateFilterEl.value = '';
-      updateFilterChip();
-      highlightSelectedTile();
       renderHistory(latestLogsData);
+      // ยกเลิกการเลือกเครื่องจักรในหน้าหลัก
+      allKeys.forEach(k => {
+        const t = document.getElementById(`card-${k}`);
+        if(t) t.classList.remove('tile-selected');
+      });
     });
 
     let statusMap = {};
     let machinesMap = {};
     let latestLogsData = null;
+
+    function updateKPIText(elementId, newValue) {
+      const el = document.getElementById(elementId);
+      if (el.innerText !== String(newValue)) {
+        el.innerText = newValue;
+        el.classList.remove('pop-anim');
+        void el.offsetWidth; 
+        el.classList.add('pop-anim');
+      }
+    }
 
     function refreshAllCards() {
       const nowMs = Date.now();
@@ -524,60 +668,31 @@
         const isStale = !heartbeatMs || ((nowMs - heartbeatMs) / 1000 > OFFLINE_THRESHOLD_SEC);
         const code = statusMap[dataKey];
 
-        const wasSelected = tile.classList.contains('tile-selected');
+        const isSelected = tile.classList.contains('tile-selected');
+        let newClass = `machine-tile ${isSelected ? 'tile-selected ' : ''}`;
+        
         if (isStale || code === 3) {
-          tile.className = 'machine-tile offline';
-          text.innerText = 'ออฟไลน์';
-          offlineCount++;
+          tile.className = newClass + 'offline'; text.innerText = 'OFFLINE'; offlineCount++;
         } else if (code === 1) {
-          tile.className = 'machine-tile alarm';
-          text.innerText = 'ALARM';
-          alarmCount++;
+          tile.className = newClass + 'alarm'; text.innerText = 'ALARM'; alarmCount++;
         } else if (code === 2) {
-          tile.className = 'machine-tile stop';
-          text.innerText = 'หยุด';
-          stopCount++;
+          tile.className = newClass + 'stop'; text.innerText = 'STOP'; stopCount++;
         } else {
-          tile.className = 'machine-tile';
-          text.innerText = 'OK';
-          normalCount++;
+          tile.className = newClass + 'ok'; text.innerText = 'OK'; normalCount++;
         }
-        if (wasSelected) tile.classList.add('tile-selected');
       });
 
-      document.getElementById('normalCount').innerText = normalCount;
-      document.getElementById('stopCount').innerText = stopCount;
-      document.getElementById('alarmCount').innerText = alarmCount;
-      document.getElementById('offlineCount').innerText = offlineCount;
+      updateKPIText('normalCount', normalCount);
+      updateKPIText('stopCount', stopCount);
+      updateKPIText('alarmCount', alarmCount);
+      updateKPIText('offlineCount', offlineCount);
     }
 
     function startListening() {
-      onValue(ref(db, 'status'), (snapshot) => {
-        statusMap = snapshot.val() || {};
-        refreshAllCards();
-      }, (error) => {
-        connBanner.textContent = '✕ อ่านข้อมูล /status ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
-        connBanner.className = 'error';
-      });
-
-      onValue(ref(db, 'machines'), (snapshot) => {
-        machinesMap = snapshot.val() || {};
-        refreshAllCards();
-      }, (error) => {
-        connBanner.textContent = '✕ อ่านข้อมูล /machines ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
-        connBanner.className = 'error';
-      });
-
+      onValue(ref(db, 'status'), (s) => { statusMap = s.val() || {}; refreshAllCards(); });
+      onValue(ref(db, 'machines'), (s) => { machinesMap = s.val() || {}; refreshAllCards(); });
       setInterval(refreshAllCards, 5000);
-
-      const logsQuery = query(ref(db, 'logs'), limitToLast(200));
-      onValue(logsQuery, (snapshot) => {
-        latestLogsData = snapshot.val();
-        renderHistory(latestLogsData);
-      }, (error) => {
-        connBanner.textContent = '✕ อ่านข้อมูล /logs ไม่ได้: ' + error.message + ' (เช็ค Database Rules)';
-        connBanner.className = 'error';
-      });
+      onValue(query(ref(db, 'logs'), limitToLast(200)), (s) => { latestLogsData = s.val(); renderHistory(latestLogsData); });
     }
 
     function tickClock() {
@@ -585,172 +700,83 @@
       const p = (n) => String(n).padStart(2, '0');
       document.getElementById('clock').innerText = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
     }
-    tickClock();
-    setInterval(tickClock, 1000);
+    tickClock(); setInterval(tickClock, 1000);
 
     function parseTimestamp(ts) {
       if (!ts) return 0;
-      const parts = ts.split(' ');
-      if (parts.length === 2) {
-        const d = parts[0].split('/');
-        const t = parts[1].split(':');
-        if (d.length === 3 && t.length >= 2) {
-          return new Date(d[2], d[1] - 1, d[0], t[0], t[1], t[2] || 0).getTime();
-        }
+      const p = ts.split(' ');
+      if (p.length === 2) {
+        const d = p[0].split('/'), t = p[1].split(':');
+        if (d.length === 3 && t.length >= 2) return new Date(d[2], d[1] - 1, d[0], t[0], t[1], t[2] || 0).getTime();
       }
       return 0;
     }
 
-    // ---------------- จัดกลุ่มประวัติตามวัน (วันนี้ / เมื่อวาน / วันอื่นๆ) ----------------
-    const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-
-    function dateKeyFromTimestamp(ts) {
-      if (!ts) return '';
-      return ts.split(' ')[0]; // "DD/MM/YYYY"
-    }
-
-    function timeOnlyFromTimestamp(ts) {
-      if (!ts) return '-';
-      const parts = ts.split(' ');
-      return parts.length === 2 ? parts[1] : ts;
-    }
-
-    function dateKeyFromDateObj(d) {
-      const p = (n) => String(n).padStart(2, '0');
-      return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
-    }
-
-    function dateLabelForKey(dateKey) {
-      if (!dateKey) return 'ไม่ทราบวันที่';
-      const parts = dateKey.split('/');
-      if (parts.length !== 3) return dateKey;
-      const [d, m, y] = parts.map(Number);
-      const logDate = new Date(y, m - 1, d);
-
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-
-      const dayName = THAI_DAYS[logDate.getDay()];
-
-      if (dateKey === dateKeyFromDateObj(today)) return `วันนี้ • ${dateKey} (วัน${dayName})`;
-      if (dateKey === dateKeyFromDateObj(yesterday)) return `เมื่อวาน • ${dateKey} (วัน${dayName})`;
-      return `${dateKey} (วัน${dayName})`;
-    }
-
     const STATUS_DISPLAY = {
-      ALARM:     { cls: 'tag-alarm',   label: 'ALARM' },
-      STOP:      { cls: 'tag-warn',    label: 'หยุดชั่วคราว' },
-      OK:        { cls: 'tag-ok',      label: 'ปกติ' },
-      COMM_LOST: { cls: 'tag-offline', label: 'ขาดการเชื่อมต่อ HMI' },
-      COMM_OK:   { cls: 'tag-info',    label: 'เชื่อมต่อ HMI กลับมาแล้ว' },
-      POWER_OFF: { cls: 'tag-offline', label: 'ไฟดับ (ตรวจพบย้อนหลัง)' },
-      POWER_ON:  { cls: 'tag-info',    label: 'ไฟกลับมา' },
+      ALARM:     { cls: 'badge-alarm',   label: 'ALARM' },
+      STOP:      { cls: 'badge-warn',    label: 'หยุดชั่วคราว' },
+      OK:        { cls: 'badge-ok',      label: 'ปกติ' },
+      COMM_LOST: { cls: 'badge-offline', label: 'ขาดการเชื่อมต่อ' },
+      COMM_OK:   { cls: 'badge-info',    label: 'เชื่อมต่อกลับมาแล้ว' },
+      POWER_OFF: { cls: 'badge-offline', label: 'ไฟดับ' },
+      POWER_ON:  { cls: 'badge-info',    label: 'ไฟกลับมา' },
     };
-    const DOWNTIME_START_STATUSES = new Set(['ALARM', 'STOP', 'COMM_LOST', 'POWER_OFF']);
-    const DOWNTIME_END_STATUSES   = new Set(['OK', 'COMM_OK', 'POWER_ON']);
 
     function renderHistory(data) {
       const tbody = document.getElementById('historyTableBody');
-      const countNote = document.getElementById('countNote');
       tbody.innerHTML = '';
+      if (!data) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">ไม่มีประวัติ</td></tr>`; return; }
 
-      if (!data) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ยังไม่มีประวัติ</td></tr>`;
-        countNote.textContent = '0 รายการ';
-        return;
-      }
+      const { dept: fDept, machineKey: fKey, dateIso: fDate } = currentFilter();
+      const fLabel = fKey ? machineMeta[fKey].label : null;
+      const fDateKey = fDate ? fDate.split('-').reverse().join('/') : null;
 
-      const { dept: filterDept, machineKey: filterMachineKey, dateIso: filterDateIso } = currentFilter();
-      const filterMachineLabel = filterMachineKey ? machineMeta[filterMachineKey].label : null;
-      const filterDateKey = filterDateIso ? isoDateToDmyKey(filterDateIso) : null;
-
-      const rawLogs = Object.keys(data).map(key => data[key]);
-      let activeDowntime = {};
-      let processedLogs = [];
+      const rawLogs = Object.keys(data).map(k => data[k]);
+      let activeDowntime = {}, processed = [];
 
       rawLogs.forEach(log => {
-        const machineKey = (log.dept || '') + '_' + (log.machine || '');
-        const status = String(log.status);
-        let downtimeStr = '';
+        const mk = (log.dept || '') + '_' + (log.machine || '');
+        const st = String(log.status);
+        let dtStr = '';
 
-        if (DOWNTIME_START_STATUSES.has(status)) {
-          // *** จุดที่แก้: เก็บเวลา "เริ่มหยุด" ไว้แค่ครั้งแรกของช่วงหยุดต่อเนื่องนี้เท่านั้น ***
-          // ถ้ามี event หยุดซ้อนกันอีก (เช่น ALARM แล้วตามด้วย STOP หรือกลับกัน) ไม่ทับเวลาเดิม
-          // เพื่อให้ตอนคำนวณกับ OK ได้ระยะเวลารวมทั้งช่วง ไม่ใช่แค่ช่วงหลังสุด
-          if (!activeDowntime[machineKey]) {
-            activeDowntime[machineKey] = parseTimestamp(log.timestamp);
-          }
-        } else if (DOWNTIME_END_STATUSES.has(status)) {
-          if (activeDowntime[machineKey]) {
-            const startTime = activeDowntime[machineKey];
-            const endTime = parseTimestamp(log.timestamp);
-            if (startTime > 0 && endTime > startTime) {
-              const diffMs = endTime - startTime;
-              const diffMins = Math.floor(diffMs / 60000);
-              const diffSecs = Math.floor((diffMs % 60000) / 1000);
-              downtimeStr = diffMins > 0
-                ? `หยุดไป ${diffMins} นาที ${diffSecs} วินาที`
-                : `หยุดไป ${diffSecs} วินาที`;
+        if (['ALARM','STOP','COMM_LOST','POWER_OFF'].includes(st)) {
+          if (!activeDowntime[mk]) activeDowntime[mk] = parseTimestamp(log.timestamp);
+        } else if (['OK','COMM_OK','POWER_ON'].includes(st)) {
+          if (activeDowntime[mk]) {
+            const diff = parseTimestamp(log.timestamp) - activeDowntime[mk];
+            if (diff > 0) {
+              const m = Math.floor(diff / 60000), s = Math.floor((diff % 60000) / 1000);
+              dtStr = m > 0 ? `⏱️ หยุดไป ${m} นาที ${s} วิ` : `⏱️ หยุดไป ${s} วิ`;
             }
-            delete activeDowntime[machineKey];
+            delete activeDowntime[mk];
           }
         }
-
-        processedLogs.push({ ...log, downtimeStr, status });
+        processed.push({ ...log, downtimeStr: dtStr, status: st });
       });
 
-      let filtered = processedLogs;
-      if (filterMachineLabel) {
-        filtered = filtered.filter(log => log.machine === filterMachineLabel);
-      } else if (filterDept) {
-        filtered = filtered.filter(log => log.dept === filterDept);
-      }
-      if (filterDateKey) {
-        filtered = filtered.filter(log => dateKeyFromTimestamp(log.timestamp) === filterDateKey);
-      }
+      let filtered = processed;
+      if (fLabel) filtered = filtered.filter(l => l.machine === fLabel);
+      else if (fDept) filtered = filtered.filter(l => l.dept === fDept);
+      if (fDateKey) filtered = filtered.filter(l => (l.timestamp||'').split(' ')[0] === fDateKey);
 
-      const displayLogs = filtered.reverse().slice(0, 80);
-      countNote.textContent = `${displayLogs.length} รายการล่าสุด` + ((filterMachineLabel || filterDept || filterDateKey) ? ' (กรองอยู่)' : '');
+      const displayLogs = filtered.reverse().slice(0, 100);
+      if (displayLogs.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">ไม่พบข้อมูล</td></tr>`; return; }
 
-      if (displayLogs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ไม่มีประวัติของตัวกรองนี้</td></tr>`;
-        return;
-      }
-
-      let lastDateKey = null;
       displayLogs.forEach(log => {
-        const dateKey = dateKeyFromTimestamp(log.timestamp);
-
-        if (dateKey !== lastDateKey) {
-          lastDateKey = dateKey;
-          const countForDay = displayLogs.filter(l => dateKeyFromTimestamp(l.timestamp) === dateKey).length;
-          const isToday = dateKey === dateKeyFromDateObj(new Date());
-
-          const headerRow = document.createElement('tr');
-          headerRow.className = 'date-divider' + (isToday ? ' today' : '');
-          headerRow.innerHTML = `<td colspan="4">${dateLabelForKey(dateKey)}<span class="date-count">${countForDay} รายการ</span></td>`;
-          tbody.appendChild(headerRow);
-        }
-
         const tr = document.createElement('tr');
-        const d = STATUS_DISPLAY[log.status] || { cls: 'tag-offline', label: log.status };
-
-        let statusCell = `<span class="tag ${d.cls}"><span class="dot"></span>${d.label}</span>`;
-        if (log.downtimeStr) {
-          statusCell += `<span class="downtime-note">${log.downtimeStr}</span>`;
-        }
+        const d = STATUS_DISPLAY[log.status] || { cls: 'badge-offline', label: log.status };
+        let statusCell = `<span class="status-badge ${d.cls}">${d.label}</span>`;
+        if (log.downtimeStr) statusCell += `<span class="downtime-txt">${log.downtimeStr}</span>`;
 
         tr.innerHTML = `
-          <td class="ts">${timeOnlyFromTimestamp(log.timestamp)}</td>
+          <td class="td-time">${log.timestamp || '-'}</td>
           <td>${log.dept || '-'}</td>
-          <td>${log.machine || '-'}</td>
+          <td style="font-weight:600;">${log.machine || '-'}</td>
           <td>${statusCell}</td>
         `;
         tbody.appendChild(tr);
       });
     }
   </script>
-
 </body>
 </html>
