@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th" data-theme="dark">
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,29 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ================= THEME VARIABLES ================= */
-  :root[data-theme="light"] {
-    --scheme: light;
-    --bg-app: #f0f4f8;
-    --bg-sidebar: #ffffff;
-    --bg-panel: #ffffff;
-    --border-color: #e2e8f0;
-    --text-main: #334155;
-    --text-muted: #64748b;
-    
-    --ok-bg: #d1fae5; --ok-text: #065f46; --ok-border: #a7f3d0;
-    --alarm-bg: #fee2e2; --alarm-text: #991b1b; --alarm-border: #fca5a5;
-    --alarm-glow: rgba(239, 68, 68, 0.4);
-    --warn-bg: #fef3c7; --warn-text: #92400e; --warn-border: #fde68a;
-    --offline-bg: #f1f5f9; --offline-text: #475569; --offline-border: #e2e8f0;
-    --info-bg: #dbeafe; --info-text: #1e40af; --info-border: #bfdbfe;
-    
-    --th-bg: #f8fafc;
-    --scroll-thumb: #cbd5e1;
-    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  }
-
-  :root[data-theme="dark"] {
-    --scheme: dark;
+  :root {
     --bg-app: #06090f;
     --bg-sidebar: #0d121c;
     --bg-panel: #131a26;
@@ -84,12 +62,6 @@
     100% { transform: scale(1); }
   }
 
-  @keyframes spinFlip {
-    0% { transform: rotate(0) scale(1); }
-    50% { transform: rotate(180deg) scale(0.7); }
-    100% { transform: rotate(360deg) scale(1); }
-  }
-
   @keyframes pulseLive { 
     0% { opacity: 1; transform: scale(1); } 
     50% { opacity: 0.4; transform: scale(1.2); } 
@@ -122,19 +94,6 @@
   .brand-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
   .brand-title { font-size: 22px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px; }
   .brand-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-  .theme-btn {
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px;
-    transition: all 0.2s;
-  }
-  .theme-btn:hover { border-color: var(--info-text); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
-  .theme-btn.animating { animation: spinFlip 0.5s ease-in-out; }
   
   .conn-status {
     font-family: 'IBM Plex Mono', monospace; font-size: 11px;
@@ -317,7 +276,7 @@
     border: 1px solid var(--border-color); padding: 8px 12px;
     border-radius: 8px; font-family: inherit; font-size: 13px;
     outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-    color-scheme: var(--scheme); 
+    color-scheme: dark; 
   }
   .filters select:focus, .filters input:focus { 
     border-color: var(--info-text); 
@@ -423,7 +382,6 @@
         <div class="brand-title">SPUTTERING</div>
         <div class="brand-subtitle">Monitoring Console</div>
       </div>
-      <button class="theme-btn" id="themeToggleBtn" title="สลับโหมดมืด/สว่าง">🌙</button>
     </div>
 
     <div id="connBanner" class="conn-status">กำลังเชื่อมต่อฐานข้อมูล...</div>
@@ -540,45 +498,27 @@
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getDatabase, ref, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // Theme Toggle Logic
-    const htmlEl = document.documentElement;
-    const themeBtn = document.getElementById('themeToggleBtn');
-    
-    const savedTheme = localStorage.getItem('sputtering_theme') || 'dark';
-    htmlEl.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-
-    themeBtn.addEventListener('click', () => {
-      themeBtn.classList.add('animating');
-      setTimeout(() => themeBtn.classList.remove('animating'), 500);
-
-      const currentTheme = htmlEl.getAttribute('data-theme');
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      htmlEl.setAttribute('data-theme', newTheme);
-      localStorage.setItem('sputtering_theme', newTheme);
-      updateThemeIcon(newTheme);
-    });
-
-    function updateThemeIcon(theme) {
-      themeBtn.textContent = theme === 'light' ? '🌙' : '☀️';
-    }
-
     // Modal Control Logic
     const historyModal = document.getElementById('historyModal');
     const openHistBtn = document.getElementById('openHistBtn');
     const closeHistBtn = document.getElementById('closeHistBtn');
 
-    function clearTileSelection() {
+    function resetHistoryFilters() {
       allKeys.forEach(k => {
         const t = document.getElementById(`card-${k}`);
         if (t) t.classList.remove('tile-selected');
       });
+      deptFilterEl.value = '';
+      dateFilterEl.value = '';
+      populateMachineFilter();
+      machineFilterEl.value = '';
+      renderHistory(latestLogsData);
     }
 
     openHistBtn.addEventListener('click', () => { historyModal.classList.add('active'); });
-    closeHistBtn.addEventListener('click', () => { historyModal.classList.remove('active'); clearTileSelection(); });
+    closeHistBtn.addEventListener('click', () => { historyModal.classList.remove('active'); resetHistoryFilters(); });
     historyModal.addEventListener('click', (e) => {
-      if (e.target === historyModal) { historyModal.classList.remove('active'); clearTileSelection(); }
+      if (e.target === historyModal) { historyModal.classList.remove('active'); resetHistoryFilters(); }
     });
 
     // Firebase Config
@@ -677,17 +617,7 @@
     machineFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
     dateFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
 
-    clearFilterBtn.addEventListener('click', () => {
-      deptFilterEl.value = '';
-      dateFilterEl.value = '';
-      populateMachineFilter();
-      machineFilterEl.value = '';
-      renderHistory(latestLogsData);
-      allKeys.forEach(k => {
-        const t = document.getElementById(`card-${k}`);
-        if(t) t.classList.remove('tile-selected');
-      });
-    });
+    clearFilterBtn.addEventListener('click', resetHistoryFilters);
 
     let statusMap = {};
     let machinesMap = {};
