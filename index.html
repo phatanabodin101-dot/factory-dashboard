@@ -369,6 +369,44 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 10px; }
+
+  /* ================= MOBILE RESPONSIVE ================= */
+  @media (max-width: 768px) {
+    body {
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .sidebar {
+      width: 100%;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px;
+    }
+    
+    .main-content {
+      overflow-y: visible;
+    }
+    
+    .grid-section {
+      padding: 16px;
+    }
+    
+    .kpi-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .kpi-card.total {
+      grid-column: span 2;
+    }
+    
+    .machine-grid {
+      grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+    }
+  }
 </style>
 </head>
 <body>
@@ -592,7 +630,7 @@
     const deptFilterEl = document.getElementById('deptFilter');
     const machineFilterEl = document.getElementById('machineFilter');
     const dateFilterEl = document.getElementById('dateFilter');
-    const clearFilterBtn = document.getElementById('clearFilterBtn'); // ปุ่มเคลียร์ฟิลเตอร์ใหม่
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
 
     function populateMachineFilter() {
       const selectedDept = deptFilterEl.value;
@@ -627,14 +665,12 @@
     machineFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
     dateFilterEl.addEventListener('change', () => { renderHistory(latestLogsData); });
 
-    // ฟังก์ชันสำหรับเคลียร์ค่าตัวกรอง
     clearFilterBtn.addEventListener('click', () => {
       deptFilterEl.value = '';
       dateFilterEl.value = '';
       populateMachineFilter();
       machineFilterEl.value = '';
       renderHistory(latestLogsData);
-      // ยกเลิกการเลือกเครื่องจักรในหน้าหลัก
       allKeys.forEach(k => {
         const t = document.getElementById(`card-${k}`);
         if(t) t.classList.remove('tile-selected');
