@@ -174,6 +174,18 @@
     cursor: pointer;
   }
   .history-filters select:focus { outline: 1px solid var(--accent-med); }
+  .history-filters input[type="date"] {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 10px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    color-scheme: dark;
+  }
+  .history-filters input[type="date"]:focus { outline: 1px solid var(--accent-med); }
 
   .filter-chip {
     display: none;
@@ -312,6 +324,7 @@
         <select id="machineFilter">
           <option value="">ทุกเครื่อง</option>
         </select>
+        <input type="date" id="dateFilter" title="เลือกวันที่ต้องการดู">
         <span class="count-note" id="countNote">80 รายการล่าสุด</span>
       </div>
     </div>
@@ -396,9 +409,23 @@
 
     const deptFilterEl = document.getElementById('deptFilter');
     const machineFilterEl = document.getElementById('machineFilter');
+    const dateFilterEl = document.getElementById('dateFilter');
     const filterChip = document.getElementById('filterChip');
     const filterChipLabel = document.getElementById('filterChipLabel');
     const filterChipClear = document.getElementById('filterChipClear');
+
+    // แปลง yyyy-mm-dd (ค่าจาก <input type="date">) เป็น dd/mm/yyyy (รูปแบบเดียวกับ timestamp ใน log)
+    function isoDateToDmyKey(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function isoDateToDisplay(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
 
     function populateMachineFilter() {
       const selectedDept = deptFilterEl.value;
@@ -417,16 +444,18 @@
     populateMachineFilter();
 
     function currentFilter() {
-      return { dept: deptFilterEl.value, machineKey: machineFilterEl.value };
+      return { dept: deptFilterEl.value, machineKey: machineFilterEl.value, dateIso: dateFilterEl.value };
     }
 
     function updateFilterChip() {
-      const { dept, machineKey } = currentFilter();
-      if (machineKey) {
-        filterChipLabel.textContent = `กำลังกรอง: ${machineMeta[machineKey].label}`;
-        filterChip.classList.add('visible');
-      } else if (dept) {
-        filterChipLabel.textContent = `กำลังกรอง: แผนก${dept}`;
+      const { dept, machineKey, dateIso } = currentFilter();
+      const parts = [];
+      if (machineKey) parts.push(machineMeta[machineKey].label);
+      else if (dept) parts.push(`แผนก${dept}`);
+      if (dateIso) parts.push(isoDateToDisplay(dateIso));
+
+      if (parts.length) {
+        filterChipLabel.textContent = `กำลังกรอง: ${parts.join(' • ')}`;
         filterChip.classList.add('visible');
       } else {
         filterChip.classList.remove('visible');
@@ -464,10 +493,15 @@
       highlightSelectedTile();
       renderHistory(latestLogsData);
     });
+    dateFilterEl.addEventListener('change', () => {
+      updateFilterChip();
+      renderHistory(latestLogsData);
+    });
     filterChipClear.addEventListener('click', () => {
       deptFilterEl.value = '';
       populateMachineFilter();
       machineFilterEl.value = '';
+      dateFilterEl.value = '';
       updateFilterChip();
       highlightSelectedTile();
       renderHistory(latestLogsData);
@@ -627,8 +661,9 @@
         return;
       }
 
-      const { dept: filterDept, machineKey: filterMachineKey } = currentFilter();
+      const { dept: filterDept, machineKey: filterMachineKey, dateIso: filterDateIso } = currentFilter();
       const filterMachineLabel = filterMachineKey ? machineMeta[filterMachineKey].label : null;
+      const filterDateKey = filterDateIso ? isoDateToDmyKey(filterDateIso) : null;
 
       const rawLogs = Object.keys(data).map(key => data[key]);
       let activeDowntime = {};
@@ -671,9 +706,12 @@
       } else if (filterDept) {
         filtered = filtered.filter(log => log.dept === filterDept);
       }
+      if (filterDateKey) {
+        filtered = filtered.filter(log => dateKeyFromTimestamp(log.timestamp) === filterDateKey);
+      }
 
       const displayLogs = filtered.reverse().slice(0, 80);
-      countNote.textContent = `${displayLogs.length} รายการล่าสุด` + (filterMachineLabel || filterDept ? ' (กรองอยู่)' : '');
+      countNote.textContent = `${displayLogs.length} รายการล่าสุด` + ((filterMachineLabel || filterDept || filterDateKey) ? ' (กรองอยู่)' : '');
 
       if (displayLogs.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-dim); padding:20px;">ไม่มีประวัติของตัวกรองนี้</td></tr>`;
