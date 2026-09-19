@@ -219,6 +219,24 @@
 
   .downtime-note { display: block; margin-top: 5px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); }
 
+  .date-divider td {
+    padding: 10px 20px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .date-divider.today td { color: var(--info-text); }
+  .date-divider .date-count {
+    margin-left: 10px;
+    font-weight: 400;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: var(--panel); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
@@ -301,7 +319,7 @@
       <table>
         <thead>
           <tr>
-            <th>วัน - เวลา</th>
+            <th>เวลา</th>
             <th>แผนก</th>
             <th>เครื่องจักร</th>
             <th>สถานะ</th>
@@ -347,8 +365,6 @@
     const gridMed = document.getElementById('gridHakMed');
     const gridThang = document.getElementById('gridHakThang');
 
-    // เก็บ label ที่โชว์บนกล่อง (S001, P001, ...) คู่กับ dataKey (med_m1, thang_m1, ...) และแผนกไว้ด้วย
-    // เพื่อให้ dropdown filter และการคลิกกล่องอ้างอิงกลับไปหา dept/machine ที่ใช้จริงใน /logs ได้ถูกต้อง
     const machineMeta = {}; // dataKey -> { label, dept }
 
     const medKeys = [];
@@ -378,14 +394,12 @@
       return tile;
     }
 
-    // ---------------- ตัวกรองประวัติ (แผนก / เครื่องจักร) ----------------
     const deptFilterEl = document.getElementById('deptFilter');
     const machineFilterEl = document.getElementById('machineFilter');
     const filterChip = document.getElementById('filterChip');
     const filterChipLabel = document.getElementById('filterChipLabel');
     const filterChipClear = document.getElementById('filterChipClear');
 
-    // เติม dropdown เลือกเครื่องจักรตามแผนกที่เลือก (หรือทั้งหมดถ้ายังไม่เลือกแผนก)
     function populateMachineFilter() {
       const selectedDept = deptFilterEl.value;
       const keys = !selectedDept ? allKeys
@@ -553,6 +567,43 @@
       return 0;
     }
 
+    // ---------------- จัดกลุ่มประวัติตามวัน (วันนี้ / เมื่อวาน / วันอื่นๆ) ----------------
+    const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+
+    function dateKeyFromTimestamp(ts) {
+      if (!ts) return '';
+      return ts.split(' ')[0]; // "DD/MM/YYYY"
+    }
+
+    function timeOnlyFromTimestamp(ts) {
+      if (!ts) return '-';
+      const parts = ts.split(' ');
+      return parts.length === 2 ? parts[1] : ts;
+    }
+
+    function dateKeyFromDateObj(d) {
+      const p = (n) => String(n).padStart(2, '0');
+      return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+    }
+
+    function dateLabelForKey(dateKey) {
+      if (!dateKey) return 'ไม่ทราบวันที่';
+      const parts = dateKey.split('/');
+      if (parts.length !== 3) return dateKey;
+      const [d, m, y] = parts.map(Number);
+      const logDate = new Date(y, m - 1, d);
+
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      const dayName = THAI_DAYS[logDate.getDay()];
+
+      if (dateKey === dateKeyFromDateObj(today)) return `วันนี้ • ${dateKey} (วัน${dayName})`;
+      if (dateKey === dateKeyFromDateObj(yesterday)) return `เมื่อวาน • ${dateKey} (วัน${dayName})`;
+      return `${dateKey} (วัน${dayName})`;
+    }
+
     const STATUS_DISPLAY = {
       ALARM:     { cls: 'tag-alarm',   label: 'ALARM' },
       STOP:      { cls: 'tag-warn',    label: 'หยุดชั่วคราว' },
@@ -579,8 +630,6 @@
       const { dept: filterDept, machineKey: filterMachineKey } = currentFilter();
       const filterMachineLabel = filterMachineKey ? machineMeta[filterMachineKey].label : null;
 
-      // จับคู่เวลาหยุด/กลับมาทำงาน ต้องทำกับ "ข้อมูลดิบทั้งหมด" ก่อนกรอง ไม่ใช่หลังกรอง
-      // ไม่งั้นถ้ากรองออกไปตัวใดตัวหนึ่งของคู่ จะจับคู่หาเวลาหยุดไม่ได้
       const rawLogs = Object.keys(data).map(key => data[key]);
       let activeDowntime = {};
       let processedLogs = [];
@@ -591,7 +640,12 @@
         let downtimeStr = '';
 
         if (DOWNTIME_START_STATUSES.has(status)) {
-          activeDowntime[machineKey] = parseTimestamp(log.timestamp);
+          // *** จุดที่แก้: เก็บเวลา "เริ่มหยุด" ไว้แค่ครั้งแรกของช่วงหยุดต่อเนื่องนี้เท่านั้น ***
+          // ถ้ามี event หยุดซ้อนกันอีก (เช่น ALARM แล้วตามด้วย STOP หรือกลับกัน) ไม่ทับเวลาเดิม
+          // เพื่อให้ตอนคำนวณกับ OK ได้ระยะเวลารวมทั้งช่วง ไม่ใช่แค่ช่วงหลังสุด
+          if (!activeDowntime[machineKey]) {
+            activeDowntime[machineKey] = parseTimestamp(log.timestamp);
+          }
         } else if (DOWNTIME_END_STATUSES.has(status)) {
           if (activeDowntime[machineKey]) {
             const startTime = activeDowntime[machineKey];
@@ -611,7 +665,6 @@
         processedLogs.push({ ...log, downtimeStr, status });
       });
 
-      // กรองตามแผนก/เครื่องจักรที่เลือกไว้ (ทำหลังจับคู่ downtime เสร็จแล้ว)
       let filtered = processedLogs;
       if (filterMachineLabel) {
         filtered = filtered.filter(log => log.machine === filterMachineLabel);
@@ -627,7 +680,21 @@
         return;
       }
 
+      let lastDateKey = null;
       displayLogs.forEach(log => {
+        const dateKey = dateKeyFromTimestamp(log.timestamp);
+
+        if (dateKey !== lastDateKey) {
+          lastDateKey = dateKey;
+          const countForDay = displayLogs.filter(l => dateKeyFromTimestamp(l.timestamp) === dateKey).length;
+          const isToday = dateKey === dateKeyFromDateObj(new Date());
+
+          const headerRow = document.createElement('tr');
+          headerRow.className = 'date-divider' + (isToday ? ' today' : '');
+          headerRow.innerHTML = `<td colspan="4">${dateLabelForKey(dateKey)}<span class="date-count">${countForDay} รายการ</span></td>`;
+          tbody.appendChild(headerRow);
+        }
+
         const tr = document.createElement('tr');
         const d = STATUS_DISPLAY[log.status] || { cls: 'tag-offline', label: log.status };
 
@@ -637,7 +704,7 @@
         }
 
         tr.innerHTML = `
-          <td class="ts">${log.timestamp || '-'}</td>
+          <td class="ts">${timeOnlyFromTimestamp(log.timestamp)}</td>
           <td>${log.dept || '-'}</td>
           <td>${log.machine || '-'}</td>
           <td>${statusCell}</td>
